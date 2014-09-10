@@ -6,6 +6,7 @@ Currently WebService supports 4 standard types of RESTful actions - GET, POST, P
 
 Example
 =======
+```
 public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,4 +73,4 @@ public class MainActivity extends ActionBarActivity {
         }
     };
 }
-
+```
