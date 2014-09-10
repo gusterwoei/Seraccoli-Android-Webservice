@@ -25,10 +25,9 @@ public class MainActivity extends ActionBarActivity {
 
          JSONObject payload = new JSONObject();
          payload.put("name", "Jeffrey");
-         payload.put("score", 5");
+         payload.put("score", 5);
          rh.post({YOUR_URL}, payload.toString()); // send as POST request
     }
-
 
     private RequestHandler.WebServiceListener webServiceListener = new RequestHandler.WebServiceListener() {
         @Override
