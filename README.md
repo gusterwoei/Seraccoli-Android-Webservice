@@ -21,12 +21,21 @@ public class MainActivity extends ActionBarActivity {
                 .setConnectionTimeout(60000) // set connection timeout, default: 30000
                 .setListener(webServiceListener); // set a WebService callback listener
 
-         rh.get({YOUR_URL}); // send as GET request
+        // send as GET request
+        rh.get({YOUR_URL});
 
-         JSONObject payload = new JSONObject();
-         payload.put("name", "Jeffrey");
-         payload.put("score", 5);
-         rh.post({YOUR_URL}, payload.toString()); // send as POST request
+        JSONObject payload = new JSONObject();
+        payload.put("name", "Jeffrey");
+        payload.put("score", 5);
+
+        // send as POST request
+        rh.post({YOUR_URL}, payload.toString());
+
+        // send PUT request
+        rh.post({YOUR_URL}, payload.toString());
+
+        // send DELETE request
+        rh.delete({YOUR_URL});
     }
 
     private RequestHandler.WebServiceListener webServiceListener = new RequestHandler.WebServiceListener() {
