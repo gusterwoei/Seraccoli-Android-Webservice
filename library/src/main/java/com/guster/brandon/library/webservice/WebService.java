@@ -1,88 +1,44 @@
+/**
+ * Copyright 2014 Gusterwoei
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
 package com.guster.brandon.library.webservice;
 
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import java.io.UnsupportedEncodingException;
+import android.content.Context;
 
 /**
  * Created by Gusterwoei on 10/30/13.
  */
 public class WebService {
+    private Context context;
+    private RequestHandler requestHandler;
 
-    public WebService() {}
+    public WebService(Context context) {
+        this.context = context;
+    }
 
-
-    /**
-     * HTTP GET
-     * @param url
-     * @return
-     */
-    public RequestHandler get(String url) {
-        HttpGet get = new HttpGet(url);
-        get.setHeader("Content-Type", "application/json");
-
-        RequestHandler requestHandler = new RequestHandler(get);
+    public RequestHandler init() {
+        requestHandler = new RequestHandler();
         return requestHandler;
     }
 
-
-    /**
-     * HTTP POST
-     * @param url
-     * @param payload a content payload, could be string, json, xml, etc
-     * @return
-     */
-    public RequestHandler post(String url, String payload) {
-        HttpPost post = new HttpPost(url);
-        post.setHeader("Content-Type", "application/json");
-        StringEntity entity;
-        try {
-            entity = new StringEntity(payload);
-            post.setEntity(entity);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-
-        RequestHandler requestHandler = new RequestHandler(post);
-        return requestHandler;
+    public Context getContext() {
+        return context;
     }
 
-
-    /**
-     * HTTP PUT
-     * @param url
-     * @param payload a content payload, could be string, json, xml, etc
-     * @return
-     */
-    public RequestHandler put(String url, String payload) {
-        HttpPut put = new HttpPut(url);
-        put.setHeader("Content-Type", "application/json");
-        StringEntity entity;
-        try {
-            entity = new StringEntity(payload);
-            put.setEntity(entity);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-
-        RequestHandler requestHandler = new RequestHandler(put);
-        return requestHandler;
-    }
-
-
-    /**
-     * HTTP DELETE
-     * @param url
-     * @return
-     */
-    public RequestHandler delete(String url) {
-        HttpDelete delete = new HttpDelete(url);
-        delete.setHeader("Content-Type", "application/json");
-
-        RequestHandler requestHandler = new RequestHandler(delete);
+    public RequestHandler getRequestHandler() {
         return requestHandler;
     }
 }

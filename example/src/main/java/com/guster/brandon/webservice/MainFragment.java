@@ -1,9 +1,11 @@
 package com.guster.brandon.webservice;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,14 +21,16 @@ import com.guster.brandon.library.webservice.RequestHandler;
 import com.guster.brandon.library.webservice.Response;
 import com.guster.brandon.library.webservice.WebService;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Gusterwoei on 8/24/14.
  */
-public class MainFragment extends Fragment implements
-        RequestHandler.WebServiceListener, View.OnClickListener {
+public class MainFragment extends Fragment implements View.OnClickListener {
     private Spinner urlSpinner;
     private Button btnSend;
     private TextView txtContent;
@@ -35,6 +39,8 @@ public class MainFragment extends Fragment implements
     private Button btnRetry;
     private ProgressBar progressBar;
     private ImageView imgImage;
+
+    private CustomWebService customWebService;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -49,6 +55,7 @@ public class MainFragment extends Fragment implements
         imgImage = (ImageView) rootView.findViewById(R.id.img_image);
         btnSend.setOnClickListener(this);
         btnRetry.setOnClickListener(this);
+        customWebService = new CustomWebService(getActivity());
 
         loadUrls();
 
@@ -60,7 +67,7 @@ public class MainFragment extends Fragment implements
         urls.add("http://www.facebook.com");
         urls.add("http://echo.jsontest.com/key/value/one/two");
         urls.add("http://date.jsontest.com");
-        urls.add("http://www.fondazionegiuliani.org/wp-content/gallery/simon-dybbroe-moller/hello_sito.jpg");
+        urls.add("http://upload.wikimedia.org/wikipedia/commons/b/b7/Big_smile.png");
         MyAdapter adapter = new MyAdapter(urls);
         urlSpinner.setAdapter(adapter);
     }
@@ -69,7 +76,11 @@ public class MainFragment extends Fragment implements
     @Override
     public void onClick(View view) {
         String url = (String) urlSpinner.getSelectedItem();
-        sendRequest(url);
+        try {
+            sendRequest(url);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         if(view == btnRetry)
             lytRetry.setVisibility(View.GONE);
@@ -80,52 +91,69 @@ public class MainFragment extends Fragment implements
      * Send Request
      * @param url
      */
-    private void sendRequest(String url) {
-        WebService webService = new WebService();
-        webService.get(url)
-                .setHeader("Content-Type", "text/html")
+    private void sendRequest(String url) throws JSONException {
+        WebService webService = new WebService(getActivity());
+        RequestHandler rh = webService.init()
+                .addHeader("AppVersion", "1.0")
                 .addHeader("Content-Type", "application/json")
-                .setSocketTimeout(30000)
-                .setConnectionTimeout(30000)
-                .setListener(this)
-                .send();
-    }
+                .setSocketTimeout(60000)
+                .setConnectionTimeout(60000)
+                .setListener(webServiceListener);
 
-    @Override
-    public void prepare(RequestHandler requestHandler) {
-        String url = requestHandler.getRequest().getURI().toString();
-        Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
-        showProgressbar(true);
-    }
-
-    @Override
-    public void success(Response response) {
-        String contentType = response.getContentType().getValue();
-
-        // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
-        // when trying to convert to string, use with care
-        if(contentType.equals("image/jpeg")) {
-            imgImage.setVisibility(View.VISIBLE);
-            txtContent.setVisibility(View.GONE);
-            progressBar.setVisibility(View.GONE);
-            imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
+        // send HTTP requests to server
+        if(urlSpinner.getSelectedItemPosition() == 1) {
+            JSONObject payload = new JSONObject();
+            payload.put("key1", "value1");
+            payload.put("key2", "value2");
+            rh.post(url, payload.toString()); // send as POST request
         } else {
-            String content = response.getResponse();
-            txtContent.setText(content);
+            rh.get(url); // send as GET request
+        }
+    }
+
+
+    private RequestHandler.WebServiceListener webServiceListener = new RequestHandler.WebServiceListener() {
+        @Override
+        public void onPrepare(RequestHandler requestHandler) {
+            String url = requestHandler.getRequest().getURI().toString();
+            Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
+            showProgressbar(true);
+        }
+
+        @Override
+        public void onReceive(Response response) {
+            // do something
+        }
+
+        @Override
+        public void onSuccess(Response response) {
+            String contentType = response.getContentType().getValue();
+
+            // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
+            // when trying to convert to string, use with care
+            if(contentType.contains("image/")) {
+                imgImage.setVisibility(View.VISIBLE);
+                txtContent.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+                imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
+            } else {
+                String content = response.getResponse();
+                txtContent.setText(content);
+                showProgressbar(false);
+            }
+        }
+
+        @Override
+        public void onFailed(Response response) {
             showProgressbar(false);
-        }
-    }
 
-    @Override
-    public void failed(Response response) {
-        showProgressbar(false);
-
-        // no response, either server has no response or no internet available
-        if(response == null) {
-            txtContent.setVisibility(View.GONE);
-            lytRetry.setVisibility(View.VISIBLE);
+            // no response, either server has no response or no internet available
+            if(response == null) {
+                txtContent.setVisibility(View.GONE);
+                lytRetry.setVisibility(View.VISIBLE);
+            }
         }
-    }
+    };
 
 
     private void showProgressbar(boolean show) {

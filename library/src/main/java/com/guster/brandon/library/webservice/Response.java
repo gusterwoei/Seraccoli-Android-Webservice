@@ -93,7 +93,7 @@ public class Response {
             rawResponse.close();
             response = stringBuilder.toString();
         } catch (IOException e) {
-            Log.d("NISSAN", "SOMETHING IS WRONG: " + e.getMessage());
+            Log.e("ABC", "Response getResponse() Exception: " + e.getMessage());
             e.printStackTrace();
         }
 

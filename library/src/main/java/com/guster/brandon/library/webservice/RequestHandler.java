@@ -5,8 +5,13 @@ import android.os.AsyncTask;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
@@ -14,6 +19,7 @@ import org.apache.http.params.HttpParams;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -23,8 +29,8 @@ import java.util.concurrent.Executor;
  */
 public class RequestHandler {
     // HTTP socket parameters
-    public static int CONNECTION_TIMEOUT = 60000;
-    public static int SOCKET_TIMEOUT = 60000;
+    public static int CONNECTION_TIMEOUT = 30000;
+    public static int SOCKET_TIMEOUT = 30000;
 
     private HttpClient httpClient;
     private HttpAuthenticator httpAuthenticator;
@@ -81,15 +87,52 @@ public class RequestHandler {
         this.request = request;
     }
 
-    public RequestHandler setHeader(String name, String value) {
+    private RequestHandler setHeader(String name, String value) {
         return this;
     }
 
     public RequestHandler addHeader(String name, String value) {
-        headers.add(new HttpHeader(name, value));
+        HttpHeader h = findHeader(name);
+        if(h != null && h.getName().equals(name) && h.getValue().equals(value))
+            return this;
+        else {
+            removeHeader(name);
+            headers.add(new HttpHeader(name, value));
+        }
         return this;
     }
 
+    public void removeHeader(String name) {
+        int x = findHeaderIndex(name);
+        if(x != -1) {
+            headers.remove(x);
+        }
+    }
+
+    public HttpHeader findHeader(String name) {
+        int x = findHeaderIndex(name);
+        return (x != -1)? headers.get(x) : null;
+    }
+
+    private int findHeaderIndex(String name) {
+        int x = -1;
+        for(int i=0; i<headers.size(); i++) {
+            HttpHeader header = headers.get(i);
+            if(header.getName().equals(name)) {
+                x = i;
+                break;
+            }
+        }
+        return x;
+    }
+
+    public void removeAllHeaders() {
+        headers.clear();
+    }
+
+    public List<HttpHeader> getHeaders() {
+        return headers;
+    }
 
     /**
      * Set Authentication credentials
@@ -110,6 +153,78 @@ public class RequestHandler {
 
     public void setAsyncTaskExecutor(Executor asyncTaskExecutor) {
         this.asyncTaskExecutor = asyncTaskExecutor;
+    }
+
+
+    /**
+     * HTTP GET
+     * @param url
+     * @return
+     */
+    public void get(String url) {
+        HttpGet get = new HttpGet(url);
+        get.setHeader("Content-Type", "application/json");
+
+        setRequest(get);
+        send();
+    }
+
+
+    /**
+     * HTTP POST
+     * @param url
+     * @param payload a content payload, could be string, json, xml, etc
+     * @return
+     */
+    public void post(String url, String payload) {
+        HttpPost post = new HttpPost(url);
+        post.setHeader("Content-Type", "application/json");
+        StringEntity entity;
+        try {
+            entity = new StringEntity(payload);
+            post.setEntity(entity);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        setRequest(post);
+        send();
+    }
+
+
+    /**
+     * HTTP PUT
+     * @param url
+     * @param payload a content payload, could be string, json, xml, etc
+     * @return
+     */
+    public void put(String url, String payload) {
+        HttpPut put = new HttpPut(url);
+        put.setHeader("Content-Type", "application/json");
+        StringEntity entity;
+        try {
+            entity = new StringEntity(payload);
+            put.setEntity(entity);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        setRequest(put);
+        send();
+    }
+
+
+    /**
+     * HTTP DELETE
+     * @param url
+     * @return
+     */
+    public void delete(String url) {
+        HttpDelete delete = new HttpDelete(url);
+        delete.setHeader("Content-Type", "application/json");
+
+        setRequest(delete);
+        send();
     }
 
 
@@ -135,13 +250,14 @@ public class RequestHandler {
         }
 
         // send the request to server
-        listener.prepare(this);
+        listener.onPrepare(this);
         new AsyncTask<Void, Void, Response>() {
             @Override
             protected Response doInBackground(Void... voids) {
                 Response response = null;
                 try {
                     response = send(request);
+                    listener.onReceive(response);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -151,9 +267,9 @@ public class RequestHandler {
             @Override
             protected void onPostExecute(Response response) {
                 if(response != null && response.success()) {
-                    listener.success(response);
+                    listener.onSuccess(response);
                 } else {
-                    listener.failed(response);
+                    listener.onFailed(response);
                 }
             }
         }.executeOnExecutor(asyncTaskExecutor);
@@ -180,7 +296,7 @@ public class RequestHandler {
         String statusDesc = httpResponse.getStatusLine().getReasonPhrase();
         long contentLength = entity.getContentLength();
 
-        // prepare the response
+        // onPrepare the response
         Response responseObject = new Response();
         responseObject.setStatusCode(statusCode);
         responseObject.setStatusDesc(statusDesc);
@@ -228,8 +344,9 @@ public class RequestHandler {
      * Web Service Event Listener
      */
     public interface WebServiceListener {
-        void prepare(RequestHandler requestHandler);
-        void success(Response response);
-        void failed(Response response);
+        void onPrepare(RequestHandler requestHandler);
+        void onReceive(Response response);
+        void onSuccess(Response response);
+        void onFailed(Response response);
     }
 }
