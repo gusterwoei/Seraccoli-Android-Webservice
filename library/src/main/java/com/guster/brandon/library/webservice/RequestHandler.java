@@ -359,10 +359,18 @@ public class RequestHandler {
     /**
      * Web Service Event Listener
      */
-    public interface WebServiceListener {
+    /*public interface WebServiceListener {
         void onPrepare(RequestHandler requestHandler);
         void onReceive(Response response);
         void onSuccess(Response response);
         void onFailed(Response response);
+    }*/
+
+
+    public abstract static class WebServiceListener {
+        public void onPrepare(RequestHandler requestHandler) {}
+        public void onReceive(Response response) {}
+        public abstract void onSuccess(Response response);
+        public abstract void onFailed(Response response);
     }
 }
