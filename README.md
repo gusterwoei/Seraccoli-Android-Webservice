@@ -47,36 +47,28 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onReceive(Response response) {
-            // do something
-        }
-
-        @Override
-        public void onSuccess(Response response) {
-            String contentType = response.getContentType().getValue();
-
-            // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
-            // when trying to convert to string, use with care
-            if(contentType.contains("image/")) {
-                imgImage.setVisibility(View.VISIBLE);
-                txtContent.setVisibility(View.GONE);
-                progressBar.setVisibility(View.GONE);
-                imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
-            } else {
-                String content = response.getResponse();
-                txtContent.setText(content);
-                showProgressbar(false);
-            }
-        }
-
-        @Override
-        public void onFailed(Response response) {
+        public void onReceive(Response response, boolean success) {
             showProgressbar(false);
 
-            // no response, either server has no response or no internet available
+            // no response, either request timeout due to server no respond or loss of internet connection
             if(response == null) {
                 txtContent.setVisibility(View.GONE);
                 lytRetry.setVisibility(View.VISIBLE);
+            }
+
+            if(success) {
+                // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
+                // when trying to convert to string, use with care
+                String contentType = response.getContentType().getValue();
+                if (contentType.contains("image/")) {
+                    imgImage.setVisibility(View.VISIBLE);
+                    txtContent.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.GONE);
+                    imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
+                } else {
+                    String content = response.getResponse();
+                    txtContent.setText(content);
+                }
             }
         }
     };

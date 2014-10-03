@@ -273,7 +273,8 @@ public class RequestHandler {
                 Response response = null;
                 try {
                     response = send(request);
-                    listener.onReceive(response);
+                    listener.onReceiveInBackground(response, (response!=null && response.success()));
+                    //listener.onReceive(response);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -282,11 +283,12 @@ public class RequestHandler {
 
             @Override
             protected void onPostExecute(Response response) {
-                if(response != null && response.success()) {
+                listener.onReceive(response, (response!=null && response.success()));
+                /*if(response != null && response.success()) {
                     listener.onSuccess(response);
                 } else {
                     listener.onFailed(response);
-                }
+                }*/
             }
         }.executeOnExecutor(asyncTaskExecutor);
     }
@@ -356,9 +358,6 @@ public class RequestHandler {
     }
 
 
-    /**
-     * Web Service Event Listener
-     */
     /*public interface WebServiceListener {
         void onPrepare(RequestHandler requestHandler);
         void onReceive(Response response);
@@ -367,10 +366,15 @@ public class RequestHandler {
     }*/
 
 
+    /**
+     * Web Service Event Listener
+     */
     public abstract static class WebServiceListener {
         public void onPrepare(RequestHandler requestHandler) {}
-        public void onReceive(Response response) {}
-        public abstract void onSuccess(Response response);
-        public abstract void onFailed(Response response);
+        public void onReceiveInBackground(Response response, boolean success) {}
+        public abstract void onReceive(Response response, boolean success);
+        //public void onReceive(Response response) {}
+        //public abstract void onSuccess(Response response);
+        //public abstract void onFailed(Response response);
     }
 }
