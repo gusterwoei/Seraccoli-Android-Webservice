@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -113,6 +114,7 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
 
     private WebServiceListener webServiceListener = new WebServiceListener() {
+
         @Override
         public void onPrepare(WebService.RequestHandler requestHandler) {
             String url = requestHandler.getRequest().getURI().toString();
@@ -122,6 +124,7 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
         @Override
         public void onReceive(Response response, boolean success) {
+            Log.d("ABC", (response != null)? response.getResponse() : "no response");
             showProgressbar(false);
 
             // no response, either request timeout due to server no respond or loss of internet connection
@@ -140,6 +143,11 @@ public class MainFragment extends Fragment implements View.OnClickListener {
                     progressBar.setVisibility(View.GONE);
                     imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
                 } else {
+                    String content = response.getResponse();
+                    txtContent.setText(content);
+                }
+            } else {
+                if(response != null) {
                     String content = response.getResponse();
                     txtContent.setText(content);
                 }
