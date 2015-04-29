@@ -1,8 +1,9 @@
 package com.guster.brandon.webservice;
 
 import android.content.Context;
-import com.guster.brandon.library.webservice.RequestHandler;
 import com.guster.brandon.library.webservice.WebService;
+import com.guster.brandon.library.webservice.WebServiceListener;
+
 import org.json.JSONObject;
 
 /**
@@ -15,11 +16,12 @@ public class CustomWebService extends WebService {
 
     public CustomWebService(Context context) {
         super(context);
-        rh = init().setConnectionTimeout(60000)
-                .setSocketTimeout(60000);
+        rh = getRequestHandler();
+        rh.setConnectionTimeout(60000);
+        rh.setSocketTimeout(60000);
     }
 
-    public void setListener(RequestHandler.WebServiceListener listener) {
+    public void setListener(WebServiceListener listener) {
         rh.setListener(listener);
     }
 

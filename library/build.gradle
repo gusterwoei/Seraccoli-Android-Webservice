@@ -1,19 +1,24 @@
 apply plugin: 'android-library'
 
+ext {
+    PUBLISH_GROUP_ID = 'com.guster'
+    PUBLISH_ARTIFACT_ID = 'brandon-webservice'
+    PUBLISH_VERSION = '1.1'
+}
+
 android {
-    compileSdkVersion 19
+    compileSdkVersion 21
     buildToolsVersion "20.0.0"
 
     defaultConfig {
-        packageName "com.guster.brandon.library"
-        minSdkVersion 8
-        targetSdkVersion 19
+        minSdkVersion 11
+        targetSdkVersion 21
         versionCode 1
-        versionName "1.0"
+        versionName PUBLISH_VERSION
     }
     buildTypes {
         release {
-            runProguard false
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -21,7 +26,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:19.+'
-    compile 'com.android.support:appcompat-v7:19.+'
-    compile 'com.android.support:appcompat-v7:19.+'
+    //compile 'com.android.support:appcompat-v7:21.+'
 }
+
+apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
