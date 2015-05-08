@@ -21,6 +21,7 @@ import android.os.AsyncTask;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -51,25 +52,25 @@ public class WebService {
     private static List<HttpHeader> globalHeaders = new ArrayList<HttpHeader>();
 
     private Context context;
-    private RequestHandler requestHandler;
+    //private RequestHandler requestHandler;
 
     public WebService(Context context) {
         this.context = context.getApplicationContext();
-        requestHandler = new RequestHandler();
+        //requestHandler = new RequestHandler();
     }
 
-    public static RequestHandler newRequest() {
-        RequestHandler requestHandler = new RequestHandler();
-        return requestHandler;
+    public static RequestBuilder newRequest() {
+        RequestBuilder requestBuilder = new RequestBuilder();
+        return requestBuilder;
     }
 
     public Context getContext() {
         return context;
     }
 
-    protected RequestHandler getRequestHandler() {
+    /*protected RequestHandler getRequestHandler() {
         return requestHandler;
-    }
+    }*/
 
     public static void addHeader(String header, String value) {
         globalHeaders.add(new HttpHeader(header, value));
@@ -88,23 +89,24 @@ public class WebService {
      * HTTP request object handler
      *
      */
-    public static class RequestHandler {
+    public static class RequestBuilder {
         // HTTP socket parameters
 
-        private HttpClient httpClient;
-        private HttpAuthenticator httpAuthenticator;
         private int connectionTimeout = CONNECTION_TIMEOUT;
         private int socketTimeout = SOCKET_TIMEOUT;
+        private HttpClient httpClient;
+        private HttpAuthenticator httpAuthenticator;
         private HttpRequestBase request;
-        private WebServiceListener listener;
+        private WebServiceListener webServiceListener;
+        //private Response response;
         private List<HttpHeader> headers = new ArrayList<HttpHeader>(); // http headers
         private Executor asyncTaskExecutor = AsyncTask.SERIAL_EXECUTOR;
 
-        public RequestHandler() {
+        public RequestBuilder() {
             init();
         }
 
-        public RequestHandler(HttpRequestBase request) {
+        public RequestBuilder(HttpRequestBase request) {
             this.request = request;
             init();
         }
@@ -123,7 +125,7 @@ public class WebService {
             return connectionTimeout;
         }
 
-        public RequestHandler setConnectionTimeout(int connectionTimeout) {
+        public RequestBuilder setConnectionTimeout(int connectionTimeout) {
             this.connectionTimeout = connectionTimeout;
             return this;
         }
@@ -132,17 +134,17 @@ public class WebService {
             return socketTimeout;
         }
 
-        public RequestHandler setSocketTimeout(int socketTimeout) {
+        public RequestBuilder setSocketTimeout(int socketTimeout) {
             this.socketTimeout = socketTimeout;
             return this;
         }
 
-        public WebServiceListener getListener() {
-            return listener;
+        public WebServiceListener getWebServiceListener() {
+            return webServiceListener;
         }
 
-        public RequestHandler setListener(WebServiceListener listener) {
-            this.listener = listener;
+        public RequestBuilder withResponse(WebServiceListener webServiceListener) {
+            this.webServiceListener = webServiceListener;
             return this;
         }
 
@@ -150,11 +152,11 @@ public class WebService {
             this.request = request;
         }
 
-        private RequestHandler setHeader(String name, String value) {
+        private RequestBuilder setHeader(String name, String value) {
             return this;
         }
 
-        public RequestHandler addHeader(String name, String value) {
+        public RequestBuilder addHeader(String name, String value) {
             HttpHeader h = findHeader(name);
             if (h != null && h.getName().equals(name) && h.getValue().equals(value))
                 return this;
@@ -204,7 +206,7 @@ public class WebService {
          * @param pwd     credential password
          * @return
          */
-        public RequestHandler setAuthentication(String usrname, String pwd) {
+        public RequestBuilder setAuthentication(String usrname, String pwd) {
             httpAuthenticator = new HttpAuthenticator();
             httpAuthenticator.setUsername(usrname);
             httpAuthenticator.setPassword(pwd);
@@ -226,12 +228,14 @@ public class WebService {
          * @param url
          * @return
          */
-        public void get(String url) {
+        public RequestBuilder get(String url) {
             HttpGet get = new HttpGet(url);
             get.setHeader("Content-Type", "application/json");
 
             setRequest(get);
-            send();
+            //send();
+
+            return this;
         }
 
 
@@ -242,7 +246,7 @@ public class WebService {
          * @param payload a content payload, could be string, json, xml, etc
          * @return
          */
-        public void post(String url, String payload) {
+        public RequestBuilder post(String url, String payload) {
             HttpPost post = new HttpPost(url);
             post.setHeader("Content-Type", "application/json");
             StringEntity entity;
@@ -254,7 +258,9 @@ public class WebService {
             }
 
             setRequest(post);
-            send();
+            //send();
+
+            return this;
         }
 
 
@@ -265,7 +271,7 @@ public class WebService {
          * @param payload a content payload, could be string, json, xml, etc
          * @return
          */
-        public void put(String url, String payload) {
+        public RequestBuilder put(String url, String payload) {
             HttpPut put = new HttpPut(url);
             put.setHeader("Content-Type", "application/json");
             StringEntity entity;
@@ -277,7 +283,9 @@ public class WebService {
             }
 
             setRequest(put);
-            send();
+            //send();
+
+            return this;
         }
 
 
@@ -287,12 +295,14 @@ public class WebService {
          * @param url
          * @return
          */
-        public void delete(String url) {
+        public RequestBuilder delete(String url) {
             HttpDelete delete = new HttpDelete(url);
             delete.setHeader("Content-Type", "application/json");
 
             setRequest(delete);
-            send();
+            //send();
+
+            return this;
         }
 
 
@@ -318,15 +328,15 @@ public class WebService {
             }
 
             // send the request to server
-            listener.onPrepare(this);
+            if(webServiceListener != null) webServiceListener.onPrepare(this);
             new AsyncTask<Void, Void, Response>() {
                 @Override
                 protected Response doInBackground(Void... voids) {
                     Response response = null;
                     try {
                         response = send(request);
-                        listener.onReceiveInBackground(response, (response != null && response.success()));
-                        //listener.onReceive(response);
+                        if(webServiceListener != null)
+                            webServiceListener.onReceiveInBackground(response, (response != null && response.success()));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -335,9 +345,18 @@ public class WebService {
 
                 @Override
                 protected void onPostExecute(Response response) {
-                    listener.onReceive(response, (response != null && response.success()));
+                    if(webServiceListener != null) webServiceListener.onReceive(response, (response != null && response.success()));
                 }
             }.executeOnExecutor(asyncTaskExecutor);
+        }
+
+        private Response validateResponse(Response response) {
+            if(response == null) {
+                response = new Response();
+                response.setStatusCode(HttpStatus.SC_REQUEST_TIMEOUT);
+            }
+
+            return response;
         }
 
 

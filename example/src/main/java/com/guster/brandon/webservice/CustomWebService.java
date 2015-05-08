@@ -8,30 +8,25 @@ import org.json.JSONObject;
 
 /**
  * Created by Gusterwoei on 9/10/14.
- * Simple Custom WebService
+ * Example of creating a custom WebService
  */
 public class CustomWebService extends WebService {
 
-    private RequestHandler rh;
-
     public CustomWebService(Context context) {
         super(context);
-        rh = getRequestHandler();
-        rh.setConnectionTimeout(60000);
-        rh.setSocketTimeout(60000);
     }
 
     public void setListener(WebServiceListener listener) {
-        rh.setListener(listener);
+        newRequest().withResponse(listener);
     }
 
-    public void getFacebookPage() {
+    public void getFacebookPage(WebServiceListener listener) {
         String url = "http://www.facebook.com";
-        rh.get(url);
+        newRequest().get(url).withResponse(listener);
     }
 
-    public void sendPostRequest(JSONObject payload) {
+    public void sendPostRequest(JSONObject payload, WebServiceListener listener) {
         String url = "http://date.jsontest.com";
-        rh.post(url, payload.toString());
+        newRequest().post(url, payload.toString()).withResponse(listener);
     }
 }

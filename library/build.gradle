@@ -3,7 +3,7 @@ apply plugin: 'android-library'
 ext {
     PUBLISH_GROUP_ID = 'com.guster'
     PUBLISH_ARTIFACT_ID = 'brandon-webservice'
-    PUBLISH_VERSION = '1.1'
+    PUBLISH_VERSION = '1.1.0'
 }
 
 android {

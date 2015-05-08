@@ -19,6 +19,7 @@ package com.guster.brandon.library.webservice;
 import android.util.Log;
 
 import org.apache.http.Header;
+import org.apache.http.HttpStatus;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -125,6 +126,6 @@ public class Response {
     }
 
     public boolean success() {
-        return statusCode == 200;
+        return statusCode > 0 && statusCode < 400;
     }
 }

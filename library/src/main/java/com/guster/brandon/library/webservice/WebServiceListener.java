@@ -2,7 +2,7 @@ package com.guster.brandon.library.webservice;
 
 public abstract class WebServiceListener {
 
-    public void onPrepare(WebService.RequestHandler requestHandler) {
+    public void onPrepare(WebService.RequestBuilder requestBuilder) {
         // do something
     }
 

@@ -1,6 +1,7 @@
 package com.guster.brandon.webservice;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -95,9 +96,9 @@ public class MainFragment extends Fragment implements View.OnClickListener {
      * @param url
      */
     private void sendRequest(String url) throws JSONException {
-        WebService.RequestHandler rh = WebService.newRequest()
+        WebService.RequestBuilder requestBuilder = WebService.newRequest()
                 .setSocketTimeout(60000)
-                .setListener(webServiceListener);
+                .withResponse(webServiceListener);
 
         // send HTTP requests to server
         if(urlSpinner.getSelectedItemPosition() == 1) {
@@ -105,10 +106,10 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             JSONObject payload = new JSONObject();
             payload.put("key1", "value1");
             payload.put("key2", "value2");
-            rh.post(url, payload.toString());
+            requestBuilder.post(url, payload.toString());
         } else {
             // send as GET request
-            rh.get(url);
+            requestBuilder.get(url);
         }
     }
 
@@ -116,8 +117,8 @@ public class MainFragment extends Fragment implements View.OnClickListener {
     private WebServiceListener webServiceListener = new WebServiceListener() {
 
         @Override
-        public void onPrepare(WebService.RequestHandler requestHandler) {
-            String url = requestHandler.getRequest().getURI().toString();
+        public void onPrepare(WebService.RequestBuilder requestBuilder) {
+            String url = requestBuilder.getRequest().getURI().toString();
             Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
             showProgressbar(true);
         }
