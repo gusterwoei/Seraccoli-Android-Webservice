@@ -14,7 +14,7 @@
  limitations under the License.
  */
 
-package com.guster.brandon.library.webservice;
+package com.guster.skywebservice.library.webservice;
 
 import android.util.Log;
 
@@ -125,6 +125,6 @@ public class Response {
     }
 
     public boolean success() {
-        return statusCode == 200;
+        return statusCode > 0 && statusCode < 400;
     }
 }

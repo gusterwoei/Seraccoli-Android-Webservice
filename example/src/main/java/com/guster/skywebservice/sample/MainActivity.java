@@ -1,4 +1,4 @@
-package com.guster.brandon.library;
+package com.guster.skywebservice.sample;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -12,6 +12,11 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.container, new MainFragment())
+                    .commit();
+        }
     }
 
 

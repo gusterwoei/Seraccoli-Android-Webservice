@@ -1,9 +1,10 @@
-package com.guster.brandon.webservice;
+package com.guster.skywebservice.sample;
 
 import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,10 +15,9 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.guster.brandon.library.webservice.RequestHandler;
-import com.guster.brandon.library.webservice.Response;
-import com.guster.brandon.library.webservice.WebService;
+import com.guster.skywebservice.library.webservice.Response;
+import com.guster.skywebservice.library.webservice.WebService;
+import com.guster.skywebservice.library.webservice.WebServiceListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,6 +55,11 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         btnRetry.setOnClickListener(this);
         customWebService = new CustomWebService(getActivity());
 
+        // set global web service properties
+        WebService.addHeader("AppVersion", "1.0");
+        WebService.addHeader("Content-Type", "application/json");
+        WebService.setConnectionTimeout(60000);
+
         loadUrls();
 
         return rootView;
@@ -90,36 +95,36 @@ public class MainFragment extends Fragment implements View.OnClickListener {
      * @param url
      */
     private void sendRequest(String url) throws JSONException {
-        WebService webService = new WebService(getActivity());
-        RequestHandler rh = webService.init()
-                .addHeader("AppVersion", "1.0")
-                .addHeader("Content-Type", "application/json")
+        WebService.RequestBuilder requestBuilder = WebService.newRequest()
                 .setSocketTimeout(60000)
-                .setConnectionTimeout(60000)
-                .setListener(webServiceListener);
+                .withResponse(webServiceListener);
 
         // send HTTP requests to server
         if(urlSpinner.getSelectedItemPosition() == 1) {
+            // send as POST request
             JSONObject payload = new JSONObject();
             payload.put("key1", "value1");
             payload.put("key2", "value2");
-            rh.post(url, payload.toString()); // send as POST request
+            requestBuilder.post(url, payload.toString());
         } else {
-            rh.get(url); // send as GET request
+            // send as GET request
+            requestBuilder.get(url);
         }
     }
 
 
-    private RequestHandler.WebServiceListener webServiceListener = new RequestHandler.WebServiceListener() {
+    private WebServiceListener webServiceListener = new WebServiceListener() {
+
         @Override
-        public void onPrepare(RequestHandler requestHandler) {
-            String url = requestHandler.getRequest().getURI().toString();
+        public void onPrepare(WebService.RequestBuilder requestBuilder) {
+            String url = requestBuilder.getRequest().getURI().toString();
             Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
             showProgressbar(true);
         }
 
         @Override
         public void onReceive(Response response, boolean success) {
+            Log.d("ABC", (response != null)? response.getResponse() : "no response");
             showProgressbar(false);
 
             // no response, either request timeout due to server no respond or loss of internet connection
@@ -141,37 +146,13 @@ public class MainFragment extends Fragment implements View.OnClickListener {
                     String content = response.getResponse();
                     txtContent.setText(content);
                 }
-            }
-        }
-
-        /*@Override
-        public void onSuccess(Response response) {
-            String contentType = response.getContentType().getValue();
-
-            // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
-            // when trying to convert to string, use with care
-            if(contentType.contains("image/")) {
-                imgImage.setVisibility(View.VISIBLE);
-                txtContent.setVisibility(View.GONE);
-                progressBar.setVisibility(View.GONE);
-                imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
             } else {
-                String content = response.getResponse();
-                txtContent.setText(content);
-                showProgressbar(false);
+                if(response != null) {
+                    String content = response.getResponse();
+                    txtContent.setText(content);
+                }
             }
         }
-
-        @Override
-        public void onFailed(Response response) {
-            showProgressbar(false);
-
-            // no response, either server has no response or no internet available
-            if(response == null) {
-                txtContent.setVisibility(View.GONE);
-                lytRetry.setVisibility(View.VISIBLE);
-            }
-        }*/
     };
 
 
