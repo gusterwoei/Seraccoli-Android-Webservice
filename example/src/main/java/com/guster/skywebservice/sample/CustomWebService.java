@@ -1,8 +1,8 @@
-package com.guster.brandon.webservice;
+package com.guster.skywebservice.sample;
 
 import android.content.Context;
-import com.guster.brandon.library.webservice.WebService;
-import com.guster.brandon.library.webservice.WebServiceListener;
+import com.guster.skywebservice.library.webservice.WebService;
+import com.guster.skywebservice.library.webservice.WebServiceListener;
 
 import org.json.JSONObject;
 

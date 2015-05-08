@@ -1,4 +1,4 @@
-package com.guster.brandon.webservice;
+package com.guster.skywebservice.sample;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;

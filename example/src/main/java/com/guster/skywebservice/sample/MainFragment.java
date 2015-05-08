@@ -1,7 +1,6 @@
-package com.guster.brandon.webservice;
+package com.guster.skywebservice.sample;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -16,9 +15,9 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.guster.brandon.library.webservice.Response;
-import com.guster.brandon.library.webservice.WebService;
-import com.guster.brandon.library.webservice.WebServiceListener;
+import com.guster.skywebservice.library.webservice.Response;
+import com.guster.skywebservice.library.webservice.WebService;
+import com.guster.skywebservice.library.webservice.WebServiceListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;

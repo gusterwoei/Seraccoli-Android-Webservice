@@ -1,4 +1,4 @@
-package com.guster.brandon.library.webservice;
+package com.guster.skywebservice.library.webservice;
 
 /**
  * HttpHeader - Inner class that represents a HTTP Header

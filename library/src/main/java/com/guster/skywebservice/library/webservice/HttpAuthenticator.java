@@ -14,7 +14,7 @@
  limitations under the License.
  */
 
-package com.guster.brandon.library.webservice;
+package com.guster.skywebservice.library.webservice;
 
 import android.util.Base64;
 

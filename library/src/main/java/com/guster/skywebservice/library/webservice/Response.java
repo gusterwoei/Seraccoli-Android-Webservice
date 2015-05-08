@@ -14,12 +14,11 @@
  limitations under the License.
  */
 
-package com.guster.brandon.library.webservice;
+package com.guster.skywebservice.library.webservice;
 
 import android.util.Log;
 
 import org.apache.http.Header;
-import org.apache.http.HttpStatus;
 
 import java.io.BufferedReader;
 import java.io.IOException;

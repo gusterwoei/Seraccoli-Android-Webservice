@@ -1,8 +1,8 @@
 apply plugin: 'android-library'
 
 ext {
-    PUBLISH_GROUP_ID = 'com.guster'
-    PUBLISH_ARTIFACT_ID = 'brandon-webservice'
+    PUBLISH_GROUP_ID = 'com.guster.android'
+    PUBLISH_ARTIFACT_ID = 'skywebservice'
     PUBLISH_VERSION = '1.1.0'
 }
 
