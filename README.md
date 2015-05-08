@@ -4,7 +4,6 @@ WebService is an Android client-end web service library that aims for handling a
 Currently WebService supports 4 standard types of RESTful actions - GET, POST, PUT, DELETE.
 
 ## Set global HTTP properties
----
 This will affect all your web service requests throughout the entire app
 ```java
 WebService.setConnectionTimeout(30000);
@@ -12,7 +11,6 @@ WebService.setSocketTimeout(60000);
 ```
 
 ## Send Request
----
 Normally, this is how you send a simple GET, POST, PUT, DELETE request
 ##### GET
 ```java
@@ -36,7 +34,6 @@ WebService.newRequest().delete("http://www.myawesomeapi.com/deleteUser?userId=6"
 ```
 
 ## Receive Response
----
 ```java
 WebService.newRequest().post("http://www.myawesomeapi.com/addUser", payload.toString())
         .withResponse(new WebServiceListener() {
