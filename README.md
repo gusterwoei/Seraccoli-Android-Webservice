@@ -23,12 +23,12 @@ payload.put("name", "Jeffrey");
 payload.put("score", 5);
 WebService.newRequest().post("http://www.myawesomeapi.com/addUser", payload.toString()).send();
 ```
-#### PUT
+##### PUT
 ```java
 payload.put("score", 10);
 WebService.newRequest().put("http://www.myawesomeapi.com/updateUser", payload.toString()).send();
 ```
-#### DELETE
+##### DELETE
 ```java
 WebService.newRequest().delete("http://www.myawesomeapi.com/deleteUser?userId=6").send();
 ```
