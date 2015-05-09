@@ -5,8 +5,7 @@ android {
     buildToolsVersion "20.0.0"
 
     defaultConfig {
-        //packageId "com.guster.brandon.webservice"
-        minSdkVersion 11
+        minSdkVersion 14
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"
@@ -25,5 +24,5 @@ dependencies {
     compile project(':library')
 
     //compile 'com.guster.android:skywebservice:1.1.0'
-    compile 'com.guster:skydb:1+'
+    //compile 'com.guster:skydb:1+'
 }

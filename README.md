@@ -1,7 +1,29 @@
 # SkyWebService
 
-WebService is an Android client-end web service library that aims for handling any HTTP requests.
-Currently WebService supports 4 standard types of RESTful actions - GET, POST, PUT, DELETE.
+SkyWebService is an Android HTTP client library that aims for handling any HTTP requests with ease,
+a one-line way of usage. Currently supporting 4 standard types of RESTful actions - GET, POST, PUT, DELETE.
+
+## Installation
+##### Gradle
+Include the following dependency in your build.gradle file of your project.
+```xml
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'com.guster.android:skywebservice:1.1.0'
+}
+```
+
+##### Maven
+```xml
+<dependency>
+    <groupId>com.guster.android</groupId>
+    <artifactId>skywebservice</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
 
 ## Set global HTTP properties
 This will affect all your web service requests throughout the entire app
