@@ -31,10 +31,10 @@ import java.util.List;
 public class MainFragment extends Fragment implements View.OnClickListener {
     private Spinner urlSpinner;
     private Button btnSend;
-    private TextView txtContent;
+    private TextView txtContent, txtUploadFile;
     private View lytContainer;
     private View lytRetry;
-    private Button btnRetry;
+    private Button btnRetry, btnUpload;
     private ProgressBar progressBar;
     private ImageView imgImage;
 
@@ -45,14 +45,19 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         urlSpinner = (Spinner) rootView.findViewById(R.id.spinner_url);
         btnSend = (Button) rootView.findViewById(R.id.btn_send);
+        btnUpload = (Button) rootView.findViewById(R.id.btn_upload);
         txtContent = (TextView) rootView.findViewById(R.id.txt_content);
+        txtUploadFile = (TextView) rootView.findViewById(R.id.txt_upload_file);
         lytContainer = rootView.findViewById(R.id.lyt_container);
         lytRetry = rootView.findViewById(R.id.lyt_retry);
         btnRetry = (Button) rootView.findViewById(R.id.btn_retry);
         progressBar = (ProgressBar) rootView.findViewById(R.id.progress_bar);
         imgImage = (ImageView) rootView.findViewById(R.id.img_image);
+
         btnSend.setOnClickListener(this);
         btnRetry.setOnClickListener(this);
+        btnUpload.setOnClickListener(this);
+        txtUploadFile.setOnClickListener(this);
         customWebService = new CustomWebService(getActivity());
 
         // set global web service properties
@@ -78,15 +83,18 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
     @Override
     public void onClick(View view) {
-        String url = (String) urlSpinner.getSelectedItem();
-        try {
-            sendRequest(url);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        if(view == btnRetry)
+        if(view == btnSend) {
+            String url = (String) urlSpinner.getSelectedItem();
+            try {
+                sendRequest(url);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else if(view == btnRetry) {
             lytRetry.setVisibility(View.GONE);
+        } else if(view == txtUploadFile) {
+
+        }
     }
 
 

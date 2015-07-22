@@ -6,17 +6,19 @@ a one-line way of usage. Currently supporting 4 standard types of RESTful action
 ## Installation
 ##### Gradle
 Include the following dependency in your build.gradle file of your project.
+
 ```xml
 repositories {
     jcenter()
 }
 
 dependencies {
-    compile 'com.guster.android:skywebservice:1.1.0'
+    compile 'com.guster.android:skywebservice:1.2.0'
 }
 ```
 
 ##### Maven
+
 ```xml
 <dependency>
     <groupId>com.guster.android</groupId>
@@ -25,8 +27,19 @@ dependencies {
 </dependency>
 ```
 
+You might also need to include the following in your build.gradle inside android {...} section
+
+```
+packagingOptions {
+    exclude 'META-INF/DEPENDENCIES'
+    exclude 'META-INF/LICENSE'
+    exclude 'META-INF/NOTICE'
+}
+```
+
 ## Set global HTTP properties
 This will affect all your web service requests throughout the entire app
+
 ```java
 WebService.setConnectionTimeout(30000);
 WebService.setSocketTimeout(60000);
@@ -35,10 +48,12 @@ WebService.setSocketTimeout(60000);
 ## Send Request
 Normally, this is how you send a simple GET, POST, PUT, DELETE request
 ##### GET
+
 ```java
 WebService.newRequest().get("http://www.myawesomeapi.com/users").send();
 ```
 ##### POST
+
 ```java
 JSONObject payload = new JSONObject();
 payload.put("name", "Jeffrey");
@@ -46,16 +61,29 @@ payload.put("score", 5);
 WebService.newRequest().post("http://www.myawesomeapi.com/addUser", payload.toString()).send();
 ```
 ##### PUT
+
 ```java
 payload.put("score", 10);
 WebService.newRequest().put("http://www.myawesomeapi.com/updateUser", payload.toString()).send();
 ```
 ##### DELETE
+
 ```java
 WebService.newRequest().delete("http://www.myawesomeapi.com/deleteUser?userId=6").send();
 ```
+##### FILE UPLOAD
+
+```java
+WebService.newRequest().post("http://www.myawesomeapi.com/uploadFile", "assignment.doc", new File("path_to_my_file").send();
+```
+
+```java
+byte[] bytes = bitmapToByteArray(myBitmap);
+WebService.newRequest().post("http://www.myawesomeapi.com/uploadFile", "myPhoto.png", byte[]).send();
+```
 
 ## Receive Response
+
 ```java
 WebService.newRequest().post("http://www.myawesomeapi.com/addUser", payload.toString())
         .withResponse(new WebServiceListener() {

@@ -3,7 +3,7 @@ apply plugin: 'android-library'
 ext {
     PUBLISH_GROUP_ID = 'com.guster.android'
     PUBLISH_ARTIFACT_ID = 'skywebservice'
-    PUBLISH_VERSION = '1.1.0'
+    PUBLISH_VERSION = '1.2.0'
 }
 
 android {
@@ -26,7 +26,9 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    //compile 'com.android.support:appcompat-v7:21.+'
+
+    compile 'org.apache.httpcomponents:httpcore:4.3.+'
+    compile 'org.apache.httpcomponents:httpmime:4.3.+'
 }
 
 apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'

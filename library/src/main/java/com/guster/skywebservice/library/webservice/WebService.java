@@ -17,7 +17,9 @@
 package com.guster.skywebservice.library.webservice;
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -29,12 +31,24 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -230,10 +244,9 @@ public class WebService {
          */
         public RequestBuilder get(String url) {
             HttpGet get = new HttpGet(url);
-            get.setHeader("Content-Type", "application/json");
+            //get.setHeader("Content-Type", "application/json");
 
             setRequest(get);
-            //send();
 
             return this;
         }
@@ -248,7 +261,7 @@ public class WebService {
          */
         public RequestBuilder post(String url, String payload) {
             HttpPost post = new HttpPost(url);
-            post.setHeader("Content-Type", "application/json");
+            //post.setHeader("Content-Type", "application/json");
             StringEntity entity;
             try {
                 entity = new StringEntity(payload);
@@ -258,7 +271,53 @@ public class WebService {
             }
 
             setRequest(post);
-            //send();
+
+            return this;
+        }
+
+        public RequestBuilder post(String url, String fileName, File fileToUpload) {
+            //InputStreamEntity entity = new InputStreamEntity(new FileInputStream(fileToUpload), -1);
+            ContentBody contentBody = new FileBody(fileToUpload);
+            uploadFileToServer(url, fileName, contentBody);
+
+            return this;
+        }
+
+        public RequestBuilder post(String url, String fileName, InputStream stream) {
+            ContentBody contentBody = new InputStreamBody(stream, fileName);
+            uploadFileToServer(url, fileName, contentBody);
+
+            return this;
+        }
+
+        public RequestBuilder post(String url, String fileName, byte[] bytes) {
+            ContentBody contentBody = new ByteArrayBody(bytes, fileName);
+            uploadFileToServer(url, fileName, contentBody);
+
+            return this;
+        }
+
+        private RequestBuilder uploadFileToServer(String url, String fileName, ContentBody contentBody) {
+            /*HttpPost post = new HttpPost(url);
+            entity.setContentType("binary/octet-stream");
+            entity.setChunked(true);
+            post.setEntity(entity);
+
+            setRequest(post);*/
+
+            String boundary = "-------------" + System.currentTimeMillis();
+            HttpEntity entity = MultipartEntityBuilder.create()
+                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                    .setBoundary(boundary)
+                    .addPart(fileName, contentBody)
+                    .build();
+
+            //HttpPost post = new HttpPost("http://192.168.1.142:9999");
+            HttpPost post = new HttpPost(url);
+            post.setHeader("Content-type", "multipart/form-data; boundary=" + boundary);
+            post.setEntity(entity);
+
+            setRequest(post);
 
             return this;
         }
@@ -273,7 +332,7 @@ public class WebService {
          */
         public RequestBuilder put(String url, String payload) {
             HttpPut put = new HttpPut(url);
-            put.setHeader("Content-Type", "application/json");
+            //put.setHeader("Content-Type", "application/json");
             StringEntity entity;
             try {
                 entity = new StringEntity(payload);
@@ -297,7 +356,7 @@ public class WebService {
          */
         public RequestBuilder delete(String url) {
             HttpDelete delete = new HttpDelete(url);
-            delete.setHeader("Content-Type", "application/json");
+            //delete.setHeader("Content-Type", "application/json");
 
             setRequest(delete);
             //send();
@@ -369,12 +428,11 @@ public class WebService {
          * @throws IOException
          */
         private Response send(HttpRequestBase rq) throws IOException {
-            //Log.d("NISSAN", "WebService: Connecting to url... " + rq.getURI());
             HttpResponse httpResponse = httpClient.execute(rq);
             HttpEntity entity = httpResponse.getEntity();
             BufferedHttpEntity bufHttpEntity = new BufferedHttpEntity(entity);
-            InputStream inputStream = bufHttpEntity.getContent();
             InputStream rawInputStream = bufHttpEntity.getContent();
+            //InputStream inputStream = bufHttpEntity.getContent();
 
             // variables to be put into Response
             int statusCode = httpResponse.getStatusLine().getStatusCode();
