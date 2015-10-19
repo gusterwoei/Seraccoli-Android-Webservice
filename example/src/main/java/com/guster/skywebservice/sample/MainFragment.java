@@ -1,7 +1,10 @@
 package com.guster.skywebservice.sample;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -22,6 +25,8 @@ import com.guster.skywebservice.library.webservice.WebServiceListener;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +34,7 @@ import java.util.List;
  * Created by Gusterwoei on 8/24/14.
  */
 public class MainFragment extends Fragment implements View.OnClickListener {
+    private static final int REQ_CODE_SELECT_FILE = 1;
     private Spinner urlSpinner;
     private Button btnSend;
     private TextView txtContent, txtUploadFile;
@@ -84,16 +90,24 @@ public class MainFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         if(view == btnSend) {
+            Log.d("ABC", "button send");
             String url = (String) urlSpinner.getSelectedItem();
             try {
                 sendRequest(url);
             } catch (JSONException e) {
+                Log.e("ABC", "Send error: " + e.getMessage());
                 e.printStackTrace();
             }
+
         } else if(view == btnRetry) {
             lytRetry.setVisibility(View.GONE);
-        } else if(view == txtUploadFile) {
 
+        } else if(view == txtUploadFile) {
+            Log.d("ABC", "button upload file");
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent, REQ_CODE_SELECT_FILE);
         }
     }
 
@@ -113,10 +127,10 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             JSONObject payload = new JSONObject();
             payload.put("key1", "value1");
             payload.put("key2", "value2");
-            requestBuilder.post(url, payload.toString());
+            requestBuilder.post(url, payload.toString()).send();
         } else {
             // send as GET request
-            requestBuilder.get(url);
+            requestBuilder.get(url).send();
         }
     }
 
@@ -125,14 +139,15 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
         @Override
         public void onPrepare(WebService.RequestBuilder requestBuilder) {
-            String url = requestBuilder.getRequest().getURI().toString();
-            Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
+            //String url = requestBuilder.getRequest().getURI().toString();
+            Toast.makeText(getActivity(), "Sending request to: ", Toast.LENGTH_LONG).show();
             showProgressbar(true);
         }
 
         @Override
         public void onReceive(Response response, boolean success) {
-            Log.d("ABC", (response != null)? response.getResponse() : "no response");
+            Log.d("ABC", "receving response: " + (response!=null? response.getStatusCode() : "no code"));
+            Log.d("ABC",(response != null)? response.getResponse() : "no response");
             showProgressbar(false);
 
             // no response, either request timeout due to server no respond or loss of internet connection
@@ -144,7 +159,8 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             if(success) {
                 // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
                 // when trying to convert to string, use with care
-                String contentType = response.getContentType().getValue();
+                //String contentType = response.getContentType().getValue();
+                String contentType = response.getContentType();
                 if (contentType.contains("image/")) {
                     imgImage.setVisibility(View.VISIBLE);
                     txtContent.setVisibility(View.GONE);
@@ -175,6 +191,31 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        Log.d("ABC", "activity result: " + requestCode + ", " + resultCode + ", " + data);
+        if(resultCode == Activity.RESULT_OK) {
+            switch(requestCode) {
+                case REQ_CODE_SELECT_FILE: {
+                    if(data == null) {
+                        Log.e("ABC", "intent no data");
+                        return;
+                    }
+
+                    try {
+                        InputStream stream = getActivity().getContentResolver().openInputStream(data.getData());
+                        customWebService.uploadFile(stream, webServiceListener);
+                    } catch (FileNotFoundException e) {
+                        Log.e("ABC", "file not found");
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     /**
      * Spinner Adapter class

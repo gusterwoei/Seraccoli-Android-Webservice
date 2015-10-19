@@ -17,6 +17,7 @@
 package com.guster.skywebservice.library.webservice;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -44,17 +45,31 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Created by Gusterwoei on 10/30/13.
@@ -99,22 +114,28 @@ public class WebService {
     }
 
 
+
+
     /**
      * HTTP request object handler
      *
      */
-    public static class RequestBuilder {
+    public static final class RequestBuilder implements WebServiceInterface {
+        private static final String TAG = "SkyWebService";
         // HTTP socket parameters
-
         private int connectionTimeout = CONNECTION_TIMEOUT;
         private int socketTimeout = SOCKET_TIMEOUT;
         private HttpClient httpClient;
         private HttpAuthenticator httpAuthenticator;
         private HttpRequestBase request;
         private WebServiceListener webServiceListener;
-        //private Response response;
         private List<HttpHeader> headers = new ArrayList<HttpHeader>(); // http headers
         private Executor asyncTaskExecutor = AsyncTask.SERIAL_EXECUTOR;
+
+        // HttpUrlConnection
+        private HttpURLConnection urlConnection;
+        private String payload;
+        private HttpEntity multiformEntity;
 
         public RequestBuilder() {
             init();
@@ -162,8 +183,13 @@ public class WebService {
             return this;
         }
 
-        public void setRequest(HttpRequestBase request) {
+        /*public void setRequest(HttpRequestBase request) {
             this.request = request;
+        }*/
+        public void setRequest(HttpURLConnection urlConnection, String payload, HttpEntity multiformEntity) {
+            this.urlConnection = urlConnection;
+            this.payload = payload;
+            this.multiformEntity = multiformEntity;
         }
 
         private RequestBuilder setHeader(String name, String value) {
@@ -239,14 +265,25 @@ public class WebService {
         /**
          * HTTP GET
          *
-         * @param url
+         * @param link
          * @return
          */
-        public RequestBuilder get(String url) {
-            HttpGet get = new HttpGet(url);
-            //get.setHeader("Content-Type", "application/json");
+        @Override
+        public RequestBuilder get(String link) {
+            /*HttpGet get = new HttpGet(link);
+            setRequest(get);*/
 
-            setRequest(get);
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(false);
+                setRequest(urlConnection, null, null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
 
             return this;
         }
@@ -255,13 +292,13 @@ public class WebService {
         /**
          * HTTP POST
          *
-         * @param url
+         * @param link
          * @param payload a content payload, could be string, json, xml, etc
          * @return
          */
-        public RequestBuilder post(String url, String payload) {
-            HttpPost post = new HttpPost(url);
-            //post.setHeader("Content-Type", "application/json");
+        @Override
+        public RequestBuilder post(String link, String payload) {
+            /*HttpPost post = new HttpPost(link);
             StringEntity entity;
             try {
                 entity = new StringEntity(payload);
@@ -270,11 +307,25 @@ public class WebService {
                 e.printStackTrace();
             }
 
-            setRequest(post);
+            setRequest(post);*/
+
+
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                setRequest(urlConnection, payload, null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
 
             return this;
         }
 
+        /*@Override
         public RequestBuilder post(String url, String fileName, File fileToUpload) {
             //InputStreamEntity entity = new InputStreamEntity(new FileInputStream(fileToUpload), -1);
             ContentBody contentBody = new FileBody(fileToUpload);
@@ -283,6 +334,7 @@ public class WebService {
             return this;
         }
 
+        @Override
         public RequestBuilder post(String url, String fileName, InputStream stream) {
             ContentBody contentBody = new InputStreamBody(stream, fileName);
             uploadFileToServer(url, fileName, contentBody);
@@ -290,34 +342,89 @@ public class WebService {
             return this;
         }
 
+        @Override
         public RequestBuilder post(String url, String fileName, byte[] bytes) {
             ContentBody contentBody = new ByteArrayBody(bytes, fileName);
             uploadFileToServer(url, fileName, contentBody);
 
             return this;
+        }*/
+
+        public RequestBuilder post(String url, FormContent formContent) {
+            uploadFileToServer(url, formContent);
+            return this;
         }
 
-        private RequestBuilder uploadFileToServer(String url, String fileName, ContentBody contentBody) {
-            /*HttpPost post = new HttpPost(url);
-            entity.setContentType("binary/octet-stream");
-            entity.setChunked(true);
-            post.setEntity(entity);
-
-            setRequest(post);*/
-
+        //private RequestBuilder uploadFileToServer(String link, String fileName, ContentBody contentBody) {
+        private RequestBuilder uploadFileToServer(String link, FormContent formContent) {
             String boundary = "-------------" + System.currentTimeMillis();
-            HttpEntity entity = MultipartEntityBuilder.create()
+            String contentType = "multipart/form-data; boundary=" + boundary;
+
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                    .setBoundary(boundary);
+
+            // get all contents
+            HashMap<String, Object> map = formContent.getContent();
+            HashMap<String, String> filenameMap = formContent.getMap();
+            Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
+            while(iterator.hasNext()) {
+                Map.Entry<String, Object> entry = iterator.next();
+                String key = entry.getKey();
+                Object value = entry.getValue();
+
+                if(value instanceof String) {
+                    builder.addTextBody(key, (String) value);
+
+                } else if(value instanceof Bitmap) {
+                    String filename = filenameMap.get(key);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ((Bitmap) value).compress(Bitmap.CompressFormat.PNG, 0, baos);
+                    builder.addPart(key, new ByteArrayBody(baos.toByteArray(), filename));
+
+                } else if(value instanceof File) {
+                    builder.addPart(key, new FileBody((File) value));
+
+                } else if(value instanceof InputStream) {
+                    String filename = filenameMap.get(key);
+                    builder.addPart(key, new InputStreamBody((InputStream) value, filename));
+
+                } else {
+                    // byte array
+                    String filename = filenameMap.get(key);
+                    builder.addPart(key, new ByteArrayBody((byte[]) value, filename));
+                }
+            }
+
+            HttpEntity entity = builder.build();
+
+            /*HttpEntity entity = MultipartEntityBuilder.create()
                     .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
                     .setBoundary(boundary)
                     .addPart(fileName, contentBody)
-                    .build();
+                    .build();*/
 
-            //HttpPost post = new HttpPost("http://192.168.1.142:9999");
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Content-type", "multipart/form-data; boundary=" + boundary);
+            /*HttpPost post = new HttpPost(url);
+            post.setHeader("Content-type", contentType);
             post.setEntity(entity);
+            setRequest(post);*/
 
-            setRequest(post);
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                urlConnection.setRequestProperty("Connection", "Keep-Alive");
+                urlConnection.setRequestProperty("Content-type", contentType);
+                urlConnection.addRequestProperty(entity.getContentType().getName(), entity.getContentType().getValue());
+
+                setRequest(urlConnection, null, entity);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
 
             return this;
         }
@@ -326,13 +433,13 @@ public class WebService {
         /**
          * HTTP PUT
          *
-         * @param url
+         * @param link
          * @param payload a content payload, could be string, json, xml, etc
          * @return
          */
-        public RequestBuilder put(String url, String payload) {
-            HttpPut put = new HttpPut(url);
-            //put.setHeader("Content-Type", "application/json");
+        @Override
+        public RequestBuilder put(String link, String payload) {
+            /*HttpPut put = new HttpPut(url);
             StringEntity entity;
             try {
                 entity = new StringEntity(payload);
@@ -341,8 +448,18 @@ public class WebService {
                 e.printStackTrace();
             }
 
-            setRequest(put);
-            //send();
+            setRequest(put);*/
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("PUT");
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                setRequest(urlConnection, payload, null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
 
             return this;
         }
@@ -351,15 +468,25 @@ public class WebService {
         /**
          * HTTP DELETE
          *
-         * @param url
+         * @param link
          * @return
          */
-        public RequestBuilder delete(String url) {
-            HttpDelete delete = new HttpDelete(url);
-            //delete.setHeader("Content-Type", "application/json");
+        @Override
+        public RequestBuilder delete(String link) {
+            /*HttpDelete delete = new HttpDelete(url);
+            setRequest(delete);*/
 
-            setRequest(delete);
-            //send();
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("DELETE");
+                urlConnection.setDoInput(false);
+                urlConnection.setDoOutput(true);
+                setRequest(urlConnection, null, null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
 
             return this;
         }
@@ -368,12 +495,26 @@ public class WebService {
         /**
          * Send Request to the server
          */
+        @Override
         public void send() {
             // Initializing parameters
-            HttpParams httpParams = new BasicHttpParams();
+            urlConnection.setConnectTimeout(connectionTimeout);
+            urlConnection.setReadTimeout(socketTimeout);
+
+            // check if there is any http authentication
+            if (httpAuthenticator != null) {
+                urlConnection.setRequestProperty("Authorization", httpAuthenticator.getPasswordAuthentication());
+            }
+
+            // add the user defined http headers accordingly
+            for (HttpHeader h : headers) {
+                urlConnection.setRequestProperty(h.getName(), h.getValue());
+            }
+
+            // Initializing parameters
+            /*HttpParams httpParams = new BasicHttpParams();
             HttpConnectionParams.setConnectionTimeout(httpParams, connectionTimeout);
             HttpConnectionParams.setSoTimeout(httpParams, socketTimeout);
-
             httpClient = new DefaultHttpClient(httpParams);
 
             // check if there is any http authentication
@@ -384,16 +525,18 @@ public class WebService {
             // add the user defined http headers accordingly
             for (HttpHeader h : headers) {
                 request.addHeader(h.getName(), h.getValue());
-            }
+            }*/
 
             // send the request to server
-            if(webServiceListener != null) webServiceListener.onPrepare(this);
+            if(webServiceListener != null)
+                webServiceListener.onPrepare(this);
             new AsyncTask<Void, Void, Response>() {
                 @Override
                 protected Response doInBackground(Void... voids) {
                     Response response = null;
                     try {
-                        response = send(request);
+                        //response = send(request);
+                        response = send(urlConnection);
                         if(webServiceListener != null)
                             webServiceListener.onReceiveInBackground(response, (response != null && response.success()));
                     } catch (IOException e) {
@@ -422,17 +565,72 @@ public class WebService {
         /**
          * Main method of sending HTTP Request to the server
          *
-         * @param rq Apache HTTP Base Request
          * @return Response, if no response from the server or no internet connection,
          * this object will return null
          * @throws IOException
          */
-        private Response send(HttpRequestBase rq) throws IOException {
+        private Response send(HttpURLConnection urlConnection) throws IOException {
+            // connect to the server
+            urlConnection.connect();
+
+            if(urlConnection.getDoOutput()) {
+                DataOutputStream dos = new DataOutputStream(urlConnection.getOutputStream());
+
+                if(payload != null)
+                    dos.writeBytes(URLEncoder.encode(payload, "UTF-8"));
+
+                if(multiformEntity != null) {
+                    multiformEntity.writeTo(dos);
+                }
+
+                dos.flush();
+                dos.close();
+            }
+
+            InputStream rawInputStream = urlConnection.getInputStream();
+
+            // variables to be put into Response
+            int statusCode = urlConnection.getResponseCode();
+            String statusDesc = urlConnection.getResponseMessage();
+            long contentLength = urlConnection.getContentLength();
+            String response = "";
+
+            if(payload != null) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(rawInputStream));
+                String line;
+                // only save as string object if it is a media object
+                try {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    while ((line = reader.readLine()) != null) {
+                        stringBuilder.append(line);
+                    }
+
+                    rawInputStream.close();
+                    response = stringBuilder.toString();
+                } catch (IOException e) {
+                    Log.e(TAG, "Response getResponse() Exception: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+            // onPrepare the response
+            Response responseObject = new Response();
+            responseObject.setStatusCode(statusCode);
+            responseObject.setStatusDesc(statusDesc);
+            responseObject.setContentLength(contentLength);
+            responseObject.setRawResponse(rawInputStream);
+            responseObject.setResponse(response);
+            responseObject.setContentEncoding(urlConnection.getContentEncoding());
+            responseObject.setContentType(urlConnection.getContentType());
+            responseObject.setUrl(urlConnection.getURL().toString());
+
+            return responseObject;
+        }
+        /*private Response send(HttpRequestBase rq) throws IOException {
             HttpResponse httpResponse = httpClient.execute(rq);
             HttpEntity entity = httpResponse.getEntity();
             BufferedHttpEntity bufHttpEntity = new BufferedHttpEntity(entity);
             InputStream rawInputStream = bufHttpEntity.getContent();
-            //InputStream inputStream = bufHttpEntity.getContent();
 
             // variables to be put into Response
             int statusCode = httpResponse.getStatusLine().getStatusCode();
@@ -450,6 +648,6 @@ public class WebService {
             responseObject.setUrl(rq.getURI().toString());
 
             return responseObject;
-        }
+        }*/
     }
 }

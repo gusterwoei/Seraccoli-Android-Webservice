@@ -32,8 +32,8 @@ public class Response {
     private int statusCode;
     private String statusDesc;
     private long contentLength;
-    private Header contentEncoding;
-    private Header contentType;
+    private String contentEncoding;
+    private String contentType;
     private String response;
     private InputStream rawResponse; // for media, binary files
     private String url;
@@ -64,19 +64,34 @@ public class Response {
         this.contentLength = contentLength;
     }
 
-    public Header getContentEncoding() {
+    /*public Header getContentEncoding() {
+        return contentEncoding;
+    }*/
+    /*public void setContentEncoding(Header contentEncoding) {
+        this.contentEncoding = contentEncoding;
+    }*/
+
+    public String getContentEncoding() {
         return contentEncoding;
     }
 
-    public void setContentEncoding(Header contentEncoding) {
+    public void setContentEncoding(String contentEncoding) {
         this.contentEncoding = contentEncoding;
     }
 
-    public Header getContentType() {
+    /*public Header getContentType() {
         return contentType;
     }
 
     public void setContentType(Header contentType) {
+        this.contentType = contentType;
+    }*/
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
@@ -96,7 +111,7 @@ public class Response {
         // if the response is already stringified before, return directly
         if(response != null) return response;
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(rawResponse));
+        /*BufferedReader reader = new BufferedReader(new InputStreamReader(rawResponse));
         String line;
 
         // only save as string object if it is a media object
@@ -111,7 +126,7 @@ public class Response {
         } catch (IOException e) {
             Log.e("ABC", "Response getResponse() Exception: " + e.getMessage());
             e.printStackTrace();
-        }
+        }*/
 
         return response;
     }
