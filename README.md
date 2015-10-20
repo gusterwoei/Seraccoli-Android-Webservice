@@ -81,7 +81,7 @@ SkyHttp.newRequest().delete("http://www.myawesomeapi.com/deleteUser?userId=6").s
 ```java
 FormContent formContent = FormContent.create()
     .addContent("username", "Steve")
-    .addContent("format", "pdf")
+    .addContent("gender", "M")
     .addContent("photo", bitmap)
     .addContent("file", file, "fileName");
 SkyHttp.newRequest().post(url, formContent).send(/* callback */);
@@ -140,8 +140,8 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         RequestBuilder rh = SkyHttp.newRequest()
-                .addGlobalHeader("AppVersion", "1.0") // set request header
-                .addGlobalHeader("Content-Type", "application/json") // add request header, default: "application/json"
+                .addHeader("AppVersion", "1.0") // set request header
+                .addHeader("Content-Type", "application/json") // add request header, default: "application/json"
                 .setSocketTimeout(60000) // set socket timeout, default: 30000
                 .setConnectionTimeout(60000) // set connection timeout, default: 30000
 
@@ -165,7 +165,7 @@ public class MainActivity extends ActionBarActivity {
 
     private SkyHttp.Callback callback = new SkyHttp.Callback() {
         @Override
-        public void onPrepare(SkyHttp.RequestBuilder RequestBuilder) {
+        public void onPrepare() {
             showProgressbar(true);
         }
 
