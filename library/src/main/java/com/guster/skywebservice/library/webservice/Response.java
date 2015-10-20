@@ -16,14 +16,9 @@
 
 package com.guster.skywebservice.library.webservice;
 
-import android.util.Log;
-
-import org.apache.http.Header;
-
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Gusterwoei on 8/24/14.
@@ -37,6 +32,7 @@ public class Response {
     private String response;
     private InputStream rawResponse; // for media, binary files
     private String url;
+    private Map<String, List<String>> headers;
 
     public Response() {}
 
@@ -64,13 +60,6 @@ public class Response {
         this.contentLength = contentLength;
     }
 
-    /*public Header getContentEncoding() {
-        return contentEncoding;
-    }*/
-    /*public void setContentEncoding(Header contentEncoding) {
-        this.contentEncoding = contentEncoding;
-    }*/
-
     public String getContentEncoding() {
         return contentEncoding;
     }
@@ -78,14 +67,6 @@ public class Response {
     public void setContentEncoding(String contentEncoding) {
         this.contentEncoding = contentEncoding;
     }
-
-    /*public Header getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(Header contentType) {
-        this.contentType = contentType;
-    }*/
 
     public String getContentType() {
         return contentType;
@@ -109,7 +90,7 @@ public class Response {
 
     public String getResponse() {
         // if the response is already stringified before, return directly
-        if(response != null) return response;
+        //if(response != null) return response;
 
         /*BufferedReader reader = new BufferedReader(new InputStreamReader(rawResponse));
         String line;
@@ -137,6 +118,25 @@ public class Response {
 
     public void setRawResponse(InputStream rawResponse) {
         this.rawResponse = rawResponse;
+    }
+
+    public Map<String, List<String>> getHeaders() {
+        return headers;
+    }
+
+    public String getHeader(String key) {
+        for(Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            if(key.equalsIgnoreCase(entry.getKey())) {
+                if(entry.getValue().size() > 0)
+                    return entry.getValue().get(0);
+                break;
+            }
+        }
+        return null;
+    }
+
+    public void setHeaders(Map<String, List<String>> headers) {
+        this.headers = headers;
     }
 
     public boolean success() {

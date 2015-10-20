@@ -18,47 +18,24 @@ package com.guster.skywebservice.library.webservice;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
-
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.entity.BufferedHttpEntity;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.entity.mime.content.ContentBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -66,26 +43,29 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executor;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Created by Gusterwoei on 10/30/13.
  */
-public class WebService {
+public class SkyHttp implements SkyHttpInterface {
     // global variables
     private static int CONNECTION_TIMEOUT = 30000;
     private static int SOCKET_TIMEOUT = 30000;
     private static List<HttpHeader> globalHeaders = new ArrayList<HttpHeader>();
+    private static SSLSocketFactory sslSocketFactory;
 
     private Context context;
-    //private RequestHandler requestHandler;
 
-    public WebService(Context context) {
+    public SkyHttp(Context context) {
         this.context = context.getApplicationContext();
-        //requestHandler = new RequestHandler();
+    }
+
+    protected Context getContext() {
+        return context;
     }
 
     public static RequestBuilder newRequest() {
@@ -93,15 +73,7 @@ public class WebService {
         return requestBuilder;
     }
 
-    public Context getContext() {
-        return context;
-    }
-
-    /*protected RequestHandler getRequestHandler() {
-        return requestHandler;
-    }*/
-
-    public static void addHeader(String header, String value) {
+    public static void addGlobalHeader(String header, String value) {
         globalHeaders.add(new HttpHeader(header, value));
     }
 
@@ -113,36 +85,34 @@ public class WebService {
         SOCKET_TIMEOUT = duration;
     }
 
+    public static void setSSLSocketFactory(SSLSocketFactory factory) {
+        sslSocketFactory = factory;
+    }
 
 
-
-    /**
-     * HTTP request object handler
+    /*****************************************************************************
      *
-     */
-    public static final class RequestBuilder implements WebServiceInterface {
+     * INNER CLASS --- RequestBuilder ---
+     *
+     *****************************************************************************/
+    public static final class RequestBuilder implements RequestBuilderInterface {
+
         private static final String TAG = "SkyWebService";
+
         // HTTP socket parameters
         private int connectionTimeout = CONNECTION_TIMEOUT;
         private int socketTimeout = SOCKET_TIMEOUT;
-        private HttpClient httpClient;
         private HttpAuthenticator httpAuthenticator;
-        private HttpRequestBase request;
-        private WebServiceListener webServiceListener;
+        private SSLSocketFactory sslSocketFactory;
+        private Callback callback;
         private List<HttpHeader> headers = new ArrayList<HttpHeader>(); // http headers
         private Executor asyncTaskExecutor = AsyncTask.SERIAL_EXECUTOR;
-
-        // HttpUrlConnection
         private HttpURLConnection urlConnection;
         private String payload;
         private HttpEntity multiformEntity;
 
-        public RequestBuilder() {
-            init();
-        }
 
-        public RequestBuilder(HttpRequestBase request) {
-            this.request = request;
+        public RequestBuilder() {
             init();
         }
 
@@ -152,50 +122,49 @@ public class WebService {
             }
         }
 
-        public HttpRequestBase getRequest() {
-            return request;
-        }
-
+        @Override
         public int getConnectionTimeout() {
             return connectionTimeout;
         }
 
+        @Override
         public RequestBuilder setConnectionTimeout(int connectionTimeout) {
             this.connectionTimeout = connectionTimeout;
             return this;
         }
 
+        @Override
         public int getSocketTimeout() {
             return socketTimeout;
         }
 
+        @Override
         public RequestBuilder setSocketTimeout(int socketTimeout) {
             this.socketTimeout = socketTimeout;
             return this;
         }
 
-        public WebServiceListener getWebServiceListener() {
-            return webServiceListener;
+        @Override
+        public Callback getCallback() {
+            return callback;
         }
 
-        public RequestBuilder withResponse(WebServiceListener webServiceListener) {
-            this.webServiceListener = webServiceListener;
-            return this;
-        }
-
-        /*public void setRequest(HttpRequestBase request) {
-            this.request = request;
-        }*/
-        public void setRequest(HttpURLConnection urlConnection, String payload, HttpEntity multiformEntity) {
+        private void setRequest(HttpURLConnection urlConnection, String payload, HttpEntity multiformEntity) {
             this.urlConnection = urlConnection;
             this.payload = payload;
             this.multiformEntity = multiformEntity;
+
+            // set ssl certificate, if any
+            if(urlConnection != null && (urlConnection instanceof HttpsURLConnection)) {
+                if(sslSocketFactory != null) {
+                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslSocketFactory);
+                } else if(SkyHttp.sslSocketFactory != null) {
+                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(SkyHttp.sslSocketFactory);
+                }
+            }
         }
 
-        private RequestBuilder setHeader(String name, String value) {
-            return this;
-        }
-
+        @Override
         public RequestBuilder addHeader(String name, String value) {
             HttpHeader h = findHeader(name);
             if (h != null && h.getName().equals(name) && h.getValue().equals(value))
@@ -207,6 +176,7 @@ public class WebService {
             return this;
         }
 
+        @Override
         public void removeHeader(String name) {
             int x = findHeaderIndex(name);
             if (x != -1) {
@@ -214,6 +184,7 @@ public class WebService {
             }
         }
 
+        @Override
         public HttpHeader findHeader(String name) {
             int x = findHeaderIndex(name);
             return (x != -1) ? headers.get(x) : null;
@@ -231,10 +202,12 @@ public class WebService {
             return x;
         }
 
+        @Override
         public void removeAllHeaders() {
             headers.clear();
         }
 
+        @Override
         public List<HttpHeader> getHeaders() {
             return headers;
         }
@@ -242,23 +215,27 @@ public class WebService {
         /**
          * Set Authentication credentials
          *
-         * @param usrname credential username
+         * @param username credential username
          * @param pwd     credential password
          * @return
          */
-        public RequestBuilder setAuthentication(String usrname, String pwd) {
+        @Override
+        public RequestBuilder setAuthentication(String username, String pwd) {
             httpAuthenticator = new HttpAuthenticator();
-            httpAuthenticator.setUsername(usrname);
+            httpAuthenticator.setUsername(username);
             httpAuthenticator.setPassword(pwd);
             return this;
         }
 
-        public Executor getAsyncTaskExecutor() {
-            return asyncTaskExecutor;
+        @Override
+        public RequestBuilder setAsyncTaskExecutor(Executor asyncTaskExecutor) {
+            this.asyncTaskExecutor = asyncTaskExecutor;
+            return this;
         }
 
-        public void setAsyncTaskExecutor(Executor asyncTaskExecutor) {
-            this.asyncTaskExecutor = asyncTaskExecutor;
+        @Override
+        public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
+            this.sslSocketFactory = sslSocketFactory;
         }
 
 
@@ -278,7 +255,6 @@ public class WebService {
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.setDoInput(true);
-                urlConnection.setDoOutput(false);
                 setRequest(urlConnection, null, null);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -308,8 +284,6 @@ public class WebService {
             }
 
             setRequest(post);*/
-
-
             try {
                 URL url = new URL(link);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
@@ -325,37 +299,12 @@ public class WebService {
             return this;
         }
 
-        /*@Override
-        public RequestBuilder post(String url, String fileName, File fileToUpload) {
-            //InputStreamEntity entity = new InputStreamEntity(new FileInputStream(fileToUpload), -1);
-            ContentBody contentBody = new FileBody(fileToUpload);
-            uploadFileToServer(url, fileName, contentBody);
-
-            return this;
-        }
-
         @Override
-        public RequestBuilder post(String url, String fileName, InputStream stream) {
-            ContentBody contentBody = new InputStreamBody(stream, fileName);
-            uploadFileToServer(url, fileName, contentBody);
-
-            return this;
-        }
-
-        @Override
-        public RequestBuilder post(String url, String fileName, byte[] bytes) {
-            ContentBody contentBody = new ByteArrayBody(bytes, fileName);
-            uploadFileToServer(url, fileName, contentBody);
-
-            return this;
-        }*/
-
         public RequestBuilder post(String url, FormContent formContent) {
             uploadFileToServer(url, formContent);
             return this;
         }
 
-        //private RequestBuilder uploadFileToServer(String link, String fileName, ContentBody contentBody) {
         private RequestBuilder uploadFileToServer(String link, FormContent formContent) {
             String boundary = "-------------" + System.currentTimeMillis();
             String contentType = "multipart/form-data; boundary=" + boundary;
@@ -447,7 +396,6 @@ public class WebService {
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
-
             setRequest(put);*/
             try {
                 URL url = new URL(link);
@@ -473,15 +421,34 @@ public class WebService {
          */
         @Override
         public RequestBuilder delete(String link) {
-            /*HttpDelete delete = new HttpDelete(url);
-            setRequest(delete);*/
-
             try {
                 URL url = new URL(link);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("DELETE");
-                urlConnection.setDoInput(false);
-                urlConnection.setDoOutput(true);
+                urlConnection.setDoInput(true);
+                setRequest(urlConnection, null, null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "WebService: " + e.getMessage());
+            }
+
+            return this;
+        }
+
+
+        /**
+         * HTTP HEAD
+         *
+         * @param link
+         * @return
+         */
+        @Override
+        public RequestBuilder head(String link) {
+            try {
+                URL url = new URL(link);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("HEAD");
+                urlConnection.setDoInput(true);
                 setRequest(urlConnection, null, null);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -511,6 +478,37 @@ public class WebService {
                 urlConnection.setRequestProperty(h.getName(), h.getValue());
             }
 
+            // send the request to server
+            new AsyncTask<Void, Void, Response>() {
+                @Override
+                protected void onPreExecute() {
+                    if(callback != null)
+                        callback.onPrepare();
+                }
+
+                @Override
+                protected Response doInBackground(Void... voids) {
+                    Response response = null;
+                    try {
+                        response = send(urlConnection);
+                        if(callback != null)
+                            callback.onReceiveInBackground(response, (response != null && response.success()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "do in background: " + e.getMessage());
+
+                        response = validateResponse(response);
+                    }
+                    return response;
+                }
+
+                @Override
+                protected void onPostExecute(Response response) {
+                    if(callback != null)
+                        callback.onResponse(response, (response != null && response.success()));
+                }
+            }.executeOnExecutor(asyncTaskExecutor);
+
             // Initializing parameters
             /*HttpParams httpParams = new BasicHttpParams();
             HttpConnectionParams.setConnectionTimeout(httpParams, connectionTimeout);
@@ -524,51 +522,16 @@ public class WebService {
 
             // add the user defined http headers accordingly
             for (HttpHeader h : headers) {
-                request.addHeader(h.getName(), h.getValue());
+                request.addGlobalHeader(h.getName(), h.getValue());
             }*/
-
-            // send the request to server
-            if(webServiceListener != null)
-                webServiceListener.onPrepare(this);
-            new AsyncTask<Void, Void, Response>() {
-                @Override
-                protected Response doInBackground(Void... voids) {
-                    Response response = null;
-                    try {
-                        //response = send(request);
-                        response = send(urlConnection);
-                        if(webServiceListener != null)
-                            webServiceListener.onReceiveInBackground(response, (response != null && response.success()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    return response;
-                }
-
-                @Override
-                protected void onPostExecute(Response response) {
-                    if(webServiceListener != null) webServiceListener.onReceive(response, (response != null && response.success()));
-                }
-            }.executeOnExecutor(asyncTaskExecutor);
         }
 
-        private Response validateResponse(Response response) {
-            if(response == null) {
-                response = new Response();
-                response.setStatusCode(HttpStatus.SC_REQUEST_TIMEOUT);
-            }
-
-            return response;
+        @Override
+        public void send(Callback callback) {
+            this.callback = callback;
+            send();
         }
 
-
-        /**
-         * Main method of sending HTTP Request to the server
-         *
-         * @return Response, if no response from the server or no internet connection,
-         * this object will return null
-         * @throws IOException
-         */
         private Response send(HttpURLConnection urlConnection) throws IOException {
             // connect to the server
             urlConnection.connect();
@@ -587,25 +550,24 @@ public class WebService {
                 dos.close();
             }
 
-            InputStream rawInputStream = urlConnection.getInputStream();
-
             // variables to be put into Response
-            int statusCode = urlConnection.getResponseCode();
-            String statusDesc = urlConnection.getResponseMessage();
-            long contentLength = urlConnection.getContentLength();
+            InputStream rawInputStream = urlConnection.getInputStream();
+            String contentEncoding = urlConnection.getContentEncoding();
+            String contentType = urlConnection.getContentType();
             String response = "";
 
-            if(payload != null) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(rawInputStream));
+            // store as string if the response is not binary file
+            if (contentType != null && contentType.matches("text/.*")) {
+                InputStream stream = urlConnection.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
                 String line;
-                // only save as string object if it is a media object
                 try {
                     StringBuilder stringBuilder = new StringBuilder();
                     while ((line = reader.readLine()) != null) {
                         stringBuilder.append(line);
                     }
 
-                    rawInputStream.close();
+                    stream.close();
                     response = stringBuilder.toString();
                 } catch (IOException e) {
                     Log.e(TAG, "Response getResponse() Exception: " + e.getMessage());
@@ -615,14 +577,15 @@ public class WebService {
 
             // onPrepare the response
             Response responseObject = new Response();
-            responseObject.setStatusCode(statusCode);
-            responseObject.setStatusDesc(statusDesc);
-            responseObject.setContentLength(contentLength);
+            responseObject.setStatusCode(urlConnection.getResponseCode());
+            responseObject.setStatusDesc(urlConnection.getResponseMessage());
+            responseObject.setContentLength(urlConnection.getContentLength());
             responseObject.setRawResponse(rawInputStream);
             responseObject.setResponse(response);
-            responseObject.setContentEncoding(urlConnection.getContentEncoding());
-            responseObject.setContentType(urlConnection.getContentType());
+            responseObject.setContentEncoding(contentEncoding);
+            responseObject.setContentType(contentType);
             responseObject.setUrl(urlConnection.getURL().toString());
+            responseObject.setHeaders(urlConnection.getHeaderFields());
 
             return responseObject;
         }
@@ -649,5 +612,32 @@ public class WebService {
 
             return responseObject;
         }*/
+
+        private Response validateResponse(Response response) {
+            if(response == null) {
+                response = new Response();
+                response.setStatusCode(HttpStatus.SC_REQUEST_TIMEOUT);
+            }
+
+            return response;
+        }
+    }
+
+
+
+
+
+    /*****************************************************************************
+     *
+     * INNER CLASS --- Callback ---
+     *  callback function for the Http Client
+     *
+     * *****************************************************************************/
+    public static abstract class Callback {
+        public void onPrepare() {}
+        public Object[] onReceiveInBackground(Response response, boolean success) {
+            return null;
+        }
+        public abstract void onResponse(Response response, boolean success, Object ... args);
     }
 }
