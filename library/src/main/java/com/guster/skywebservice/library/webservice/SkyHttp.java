@@ -28,6 +28,7 @@ import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -551,14 +552,14 @@ public class SkyHttp implements SkyHttpInterface {
             }
 
             // variables to be put into Response
-            InputStream rawInputStream = urlConnection.getInputStream();
+            InputStream rawInputStream = new BufferedInputStream(urlConnection.getInputStream());
             String contentEncoding = urlConnection.getContentEncoding();
             String contentType = urlConnection.getContentType();
             String response = "";
 
             // store as string if the response is not binary file
             if (contentType != null && contentType.matches("text/.*")) {
-                InputStream stream = urlConnection.getInputStream();
+                InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
                 String line;
                 try {
