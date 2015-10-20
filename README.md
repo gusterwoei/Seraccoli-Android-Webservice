@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.guster.android:skyhttp:2.0.0'
+    compile 'com.guster.android:skyhttp:2.0.1'
 }
 ```
 
