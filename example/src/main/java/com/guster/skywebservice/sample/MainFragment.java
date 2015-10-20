@@ -1,7 +1,11 @@
 package com.guster.skywebservice.sample;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -15,13 +19,21 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.guster.skywebservice.library.webservice.FormContent;
 import com.guster.skywebservice.library.webservice.Response;
-import com.guster.skywebservice.library.webservice.WebService;
-import com.guster.skywebservice.library.webservice.WebServiceListener;
+import com.guster.skywebservice.library.webservice.SkyHttp;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +41,7 @@ import java.util.List;
  * Created by Gusterwoei on 8/24/14.
  */
 public class MainFragment extends Fragment implements View.OnClickListener {
+    private static final int REQ_CODE_SELECT_FILE = 1;
     private Spinner urlSpinner;
     private Button btnSend;
     private TextView txtContent, txtUploadFile;
@@ -61,9 +74,9 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         customWebService = new CustomWebService(getActivity());
 
         // set global web service properties
-        WebService.addHeader("AppVersion", "1.0");
-        WebService.addHeader("Content-Type", "application/json");
-        WebService.setConnectionTimeout(60000);
+        SkyHttp.addGlobalHeader("AppVersion", "1.0");
+        SkyHttp.addGlobalHeader("Content-Type", "application/json");
+        SkyHttp.setConnectionTimeout(60000);
 
         loadUrls();
 
@@ -72,10 +85,12 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
     private void loadUrls() {
         List<String> urls = new ArrayList<String>();
-        urls.add("http://www.facebook.com");
+        urls.add("https://www.facebook.com");
         urls.add("http://echo.jsontest.com/key/value/one/two");
-        urls.add("http://date.jsontest.com");
-        urls.add("http://upload.wikimedia.org/wikipedia/commons/b/b7/Big_smile.png");
+        urls.add("http://betterexplained.com/examples/compressed/index.htm");
+        urls.add("http://192.168.1.138:1234/the_images.zip");
+        urls.add("http://simpleicon.com/wp-content/uploads/smile-256x256.png");
+        urls.add("https://upload.wikimedia.org/wikipedia/commons/b/b7/Big_smile.png");
         MyAdapter adapter = new MyAdapter(urls);
         urlSpinner.setAdapter(adapter);
     }
@@ -88,12 +103,18 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             try {
                 sendRequest(url);
             } catch (JSONException e) {
+                Log.e("ABC", "Send error: " + e.getMessage());
                 e.printStackTrace();
             }
+
         } else if(view == btnRetry) {
             lytRetry.setVisibility(View.GONE);
-        } else if(view == txtUploadFile) {
 
+        } else if(view == txtUploadFile) {
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent, REQ_CODE_SELECT_FILE);
         }
     }
 
@@ -103,9 +124,7 @@ public class MainFragment extends Fragment implements View.OnClickListener {
      * @param url
      */
     private void sendRequest(String url) throws JSONException {
-        WebService.RequestBuilder requestBuilder = WebService.newRequest()
-                .setSocketTimeout(60000)
-                .withResponse(webServiceListener);
+        SkyHttp.RequestBuilder requestBuilder = SkyHttp.newRequest();
 
         // send HTTP requests to server
         if(urlSpinner.getSelectedItemPosition() == 1) {
@@ -113,27 +132,30 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             JSONObject payload = new JSONObject();
             payload.put("key1", "value1");
             payload.put("key2", "value2");
-            requestBuilder.post(url, payload.toString());
+            requestBuilder.post(url, payload.toString()).send(webServiceListener);
         } else {
             // send as GET request
-            requestBuilder.get(url);
+            requestBuilder.get(url).send(webServiceListener);
         }
     }
 
 
-    private WebServiceListener webServiceListener = new WebServiceListener() {
+    private SkyHttp.Callback webServiceListener = new SkyHttp.Callback() {
 
         @Override
-        public void onPrepare(WebService.RequestBuilder requestBuilder) {
-            String url = requestBuilder.getRequest().getURI().toString();
-            Toast.makeText(getActivity(), "Sending request to: " + url, Toast.LENGTH_LONG).show();
+        public void onPrepare() {
+            //String url = requestBuilder.getRequest().getURI().toString();
+            Toast.makeText(getActivity(), "Sending request to: ", Toast.LENGTH_LONG).show();
             showProgressbar(true);
         }
 
         @Override
-        public void onReceive(Response response, boolean success) {
-            Log.d("ABC", (response != null)? response.getResponse() : "no response");
+        public void onResponse(final Response response, boolean success, Object ... args) {
+            Log.d("ABC",(response != null)? response.getResponse() : "no response");
             showProgressbar(false);
+
+            Log.d("ABC", "HEAD MAN: " + response.getHeader("Content-Type"));
+            Log.d("ABC", "HEAD MAN: " + response.getHeader("Content-Length"));
 
             // no response, either request timeout due to server no respond or loss of internet connection
             if(response == null) {
@@ -144,12 +166,41 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             if(success) {
                 // Note: for image, video or binary content, calling getResponse() may cause OutOfMemoryException
                 // when trying to convert to string, use with care
-                String contentType = response.getContentType().getValue();
-                if (contentType.contains("image/")) {
+                //String contentType = response.getContentType().getValue();
+                String contentType = response.getContentType();
+                if (contentType != null && contentType.contains("image/")) {
                     imgImage.setVisibility(View.VISIBLE);
                     txtContent.setVisibility(View.GONE);
                     progressBar.setVisibility(View.GONE);
-                    imgImage.setImageBitmap(BitmapFactory.decodeStream(response.getRawResponse()));
+
+                    Bitmap bitmap = BitmapFactory.decodeStream(response.getRawResponse());
+                    imgImage.setImageBitmap(bitmap);
+
+                } else if(contentType != null && !contentType.contains("text/")) {
+                    Log.d("ABC", "writing my file");
+                    new AsyncTask<Void, Void, Void>() {
+                        @Override
+                        protected Void doInBackground(Void... voids) {
+                            try {
+                                File file = new File("sdcard/ME_FILE.zip");
+                                OutputStream stream = new BufferedOutputStream(new FileOutputStream(file.getPath()));
+                                int bufferSize = 1024;
+                                byte[] buffer = new byte[bufferSize];
+                                int len;
+                                while ((len = response.getRawResponse().read(buffer)) != -1) {
+                                    stream.write(buffer, 0, len);
+                                }
+                                if(stream!=null)
+                                    stream.close();
+                            } catch (IOException e) {
+                                Log.d("ABC", "write file error: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+
+                            return null;
+                        }
+                    }.execute();
+
                 } else {
                     String content = response.getResponse();
                     txtContent.setText(content);
@@ -175,6 +226,31 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        Log.d("ABC", "activity result: " + requestCode + ", " + resultCode + ", " + data);
+        if(resultCode == Activity.RESULT_OK) {
+            switch(requestCode) {
+                case REQ_CODE_SELECT_FILE: {
+                    if(data == null) {
+                        Log.e("ABC", "intent no data");
+                        return;
+                    }
+
+                    try {
+                        InputStream stream = getActivity().getContentResolver().openInputStream(data.getData());
+                        customWebService.uploadFile(stream, webServiceListener);
+                    } catch (FileNotFoundException e) {
+                        Log.e("ABC", "file not found");
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     /**
      * Spinner Adapter class
