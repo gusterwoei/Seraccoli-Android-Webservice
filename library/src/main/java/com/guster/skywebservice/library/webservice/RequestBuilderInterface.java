@@ -1,5 +1,11 @@
 package com.guster.skywebservice.library.webservice;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -21,7 +27,8 @@ public interface RequestBuilderInterface {
     List<HttpHeader> getHeaders();
     SkyHttp.RequestBuilder setAuthentication(String usrname, String pwd);
     SkyHttp.RequestBuilder setAsyncTaskExecutor(Executor asyncTaskExecutor);
-    void setSSLSocketFactory(SSLSocketFactory sslSocketFactory);
+    SkyHttp.RequestBuilder setSSLSocketFactory(SSLSocketFactory sslSocketFactory);
+    SkyHttp.RequestBuilder setSSLCertificate(InputStream certificateFile) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException;
 
     SkyHttp.RequestBuilder get(String url);
     SkyHttp.RequestBuilder post(String url, String payload);
