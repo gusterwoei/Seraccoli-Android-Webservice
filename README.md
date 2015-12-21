@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.guster.android:skyhttp:2.0.1'
+    compile 'com.guster.android:skyhttp:2.1.0'
 }
 ```
 
@@ -23,7 +23,7 @@ dependencies {
 <dependency>
     <groupId>com.guster.android</groupId>
     <artifactId>skyhttp</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -129,6 +129,24 @@ SkyHttp.newRequest()
         })
 ```
 
+## SSL Certificate
+### Trust all certificates
+Set this global property to true will ignore all SSL certificate checking
+
+```java
+SkyHttp.trustAllCertificates(true)
+```
+
+### Adding a certificate
+Importing a custom certificate, for example a self signed certificate, to a connection.
+```java
+InputStream cert = context.getResources().openRawResource(R.raw.my_certificate_file);
+requestBuilder().setSSLCertificate(cert);
+```
+or globally
+```java
+SkyHttp.setSSLCertificate(cert);
+```
 
 ## Example
 

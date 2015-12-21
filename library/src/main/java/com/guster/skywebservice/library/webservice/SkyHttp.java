@@ -39,6 +39,14 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,7 +55,11 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Created by Gusterwoei on 10/30/13.
@@ -58,6 +70,7 @@ public class SkyHttp implements SkyHttpInterface {
     private static int SOCKET_TIMEOUT = 30000;
     private static List<HttpHeader> globalHeaders = new ArrayList<HttpHeader>();
     private static SSLSocketFactory sslSocketFactory;
+    private static boolean trustAllCertificates = false;
 
     private Context context;
 
@@ -90,6 +103,62 @@ public class SkyHttp implements SkyHttpInterface {
         sslSocketFactory = factory;
     }
 
+    public static void setSSLCertificate(InputStream certificateFile)
+            throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        Certificate cert = cf.generateCertificate(certificateFile);
+
+        certificateFile.close();
+
+        // create a keystore containing the certificate
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("ca", cert);
+
+        // create a trust manager for our certificate
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+
+        // create a SSLContext that uses our trust manager
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(null, tmf.getTrustManagers(), null);
+
+        // set socket factory
+        setSSLSocketFactory(context.getSocketFactory());
+    }
+
+    public static void trustAllCertificates(boolean yes) {
+        trustAllCertificates = yes;
+        if(yes) {
+            TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                    // Not implemented
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                    // Not implemented
+                }
+            } };
+
+            try {
+                SSLContext sc = SSLContext.getInstance("TLS");
+                sc.init(null, trustAllCerts, new java.security.SecureRandom());
+                sslSocketFactory = sc.getSocketFactory();
+                //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     /*****************************************************************************
      *
@@ -157,7 +226,7 @@ public class SkyHttp implements SkyHttpInterface {
 
             // set ssl certificate, if any
             if(urlConnection != null && (urlConnection instanceof HttpsURLConnection)) {
-                if(sslSocketFactory != null) {
+                if(sslSocketFactory != null && !trustAllCertificates) {
                     ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslSocketFactory);
                 } else if(SkyHttp.sslSocketFactory != null) {
                     ((HttpsURLConnection) urlConnection).setSSLSocketFactory(SkyHttp.sslSocketFactory);
@@ -235,10 +304,19 @@ public class SkyHttp implements SkyHttpInterface {
         }
 
         @Override
-        public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
+        public RequestBuilder setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
             this.sslSocketFactory = sslSocketFactory;
+            return this;
         }
 
+        @Override
+        public RequestBuilder setSSLCertificate(InputStream certificateFile)
+                throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+
+            SkyHttp.setSSLCertificate(certificateFile);
+
+            return this;
+        }
 
         /**
          * HTTP GET
@@ -389,15 +467,6 @@ public class SkyHttp implements SkyHttpInterface {
          */
         @Override
         public RequestBuilder put(String link, String payload) {
-            /*HttpPut put = new HttpPut(url);
-            StringEntity entity;
-            try {
-                entity = new StringEntity(payload);
-                put.setEntity(entity);
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-            setRequest(put);*/
             try {
                 URL url = new URL(link);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
@@ -405,6 +474,7 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setDoInput(true);
                 urlConnection.setDoOutput(true);
                 setRequest(urlConnection, payload, null);
+                return this;
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.e(TAG, "WebService: " + e.getMessage());

@@ -99,13 +99,14 @@ public class MainFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         if(view == btnSend) {
-            String url = (String) urlSpinner.getSelectedItem();
+            testHTTPConnection();
+            /*String url = (String) urlSpinner.getSelectedItem();
             try {
                 sendRequest(url);
             } catch (JSONException e) {
                 Log.e("ABC", "Send error: " + e.getMessage());
                 e.printStackTrace();
-            }
+            }*/
 
         } else if(view == btnRetry) {
             lytRetry.setVisibility(View.GONE);
@@ -139,9 +140,13 @@ public class MainFragment extends Fragment implements View.OnClickListener {
         }
     }
 
+    private void testHTTPConnection() {
+        CustomWebService webService = new CustomWebService(getActivity());
+        webService.testHttpsConnection();
+    }
+
 
     private SkyHttp.Callback webServiceListener = new SkyHttp.Callback() {
-
         @Override
         public void onPrepare() {
             //String url = requestBuilder.getRequest().getURI().toString();
