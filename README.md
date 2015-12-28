@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.guster.android:skyhttp:2.1.0'
+    compile 'com.guster.android:skywebservice:2.1.0'
 }
 ```
 
@@ -22,7 +22,7 @@ dependencies {
 ```xml
 <dependency>
     <groupId>com.guster.android</groupId>
-    <artifactId>skyhttp</artifactId>
+    <artifactId>skywebservice</artifactId>
     <version>2.1.0</version>
 </dependency>
 ```
