@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.guster.android:skywebservice:2.1.0'
+    compile 'com.guster.android:skywebservice:2.1.2'
 }
 ```
 
