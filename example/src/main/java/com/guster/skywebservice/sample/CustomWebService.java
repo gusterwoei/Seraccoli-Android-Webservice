@@ -7,6 +7,7 @@ import com.guster.skywebservice.library.webservice.FormContent;
 import com.guster.skywebservice.library.webservice.Response;
 import com.guster.skywebservice.library.webservice.SkyHttp;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
@@ -16,6 +17,10 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 
 /**
  * Created by Gusterwoei on 9/10/14.
@@ -32,8 +37,16 @@ public class CustomWebService extends SkyHttp {
     private void initSSLCertificate() {
         logd("initializing certificate...");
 
+        trustAllCertificates(true);
+        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+            @Override
+            public boolean verify(String s, SSLSession sslSession) {
+                return true;
+            }
+        });
+
         // get CA from raw folder
-        InputStream is = getContext().getResources().openRawResource(R.raw.mycertificate2);
+        /*InputStream is = getContext().getResources().openRawResource(R.raw.mycertificate2);
 
         try {
             setSSLCertificate(is);
@@ -53,7 +66,7 @@ public class CustomWebService extends SkyHttp {
         } catch (KeyManagementException e) {
             e.printStackTrace();
             loge("KEY_MGNT: " + e.getMessage());
-        }
+        }*/
     }
 
     public void getFacebookPage(Callback listener) {

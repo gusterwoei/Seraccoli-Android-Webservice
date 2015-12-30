@@ -150,7 +150,6 @@ public class SkyHttp implements SkyHttpInterface {
                 SSLContext sc = SSLContext.getInstance("TLS");
                 sc.init(null, trustAllCerts, new java.security.SecureRandom());
                 sslSocketFactory = sc.getSocketFactory();
-                //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
             } catch (KeyManagementException e) {
                 e.printStackTrace();
@@ -180,7 +179,7 @@ public class SkyHttp implements SkyHttpInterface {
         private HttpURLConnection urlConnection;
         private String payload;
         private HttpEntity multiformEntity;
-
+        private String urlEncodeCharset;
 
         public RequestBuilder() {
             init();
@@ -227,9 +226,9 @@ public class SkyHttp implements SkyHttpInterface {
             // set ssl certificate, if any
             if(urlConnection != null && (urlConnection instanceof HttpsURLConnection)) {
                 if(sslSocketFactory != null && !trustAllCertificates) {
-                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslSocketFactory);
+                    ((HttpsURLConnection) this.urlConnection).setSSLSocketFactory(sslSocketFactory);
                 } else if(SkyHttp.sslSocketFactory != null) {
-                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(SkyHttp.sslSocketFactory);
+                    ((HttpsURLConnection) this.urlConnection).setSSLSocketFactory(SkyHttp.sslSocketFactory);
                 }
             }
         }
@@ -529,6 +528,27 @@ public class SkyHttp implements SkyHttpInterface {
             return this;
         }
 
+        @Override
+        public RequestBuilder encode() {
+            urlEncodeCharset = "UTF-8";
+            return this;
+        }
+
+        @Override
+        public RequestBuilder encode(String charset) {
+            urlEncodeCharset = charset;
+            return this;
+        }
+
+
+        /**
+         * Send Request to the server with callback
+         */
+        @Override
+        public void send(Callback callback) {
+            this.callback = callback;
+            send();
+        }
 
         /**
          * Send Request to the server
@@ -568,7 +588,23 @@ public class SkyHttp implements SkyHttpInterface {
                         e.printStackTrace();
                         Log.e(TAG, "do in background: " + e.getMessage());
 
+                        // validate if the response is due to timeout
                         response = validateResponse(response);
+
+                        // read error stream from remote server
+                        InputStream is = new BufferedInputStream(urlConnection.getErrorStream());
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                        String line;
+                        StringBuffer sb = new StringBuffer();
+                        try {
+                            while((line = reader.readLine()) != null) {
+                                sb.append(line);
+                            }
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+
+                        response.setResponse(sb.toString());
                     }
                     return response;
                 }
@@ -597,12 +633,6 @@ public class SkyHttp implements SkyHttpInterface {
             }*/
         }
 
-        @Override
-        public void send(Callback callback) {
-            this.callback = callback;
-            send();
-        }
-
         private Response send(HttpURLConnection urlConnection) throws IOException {
             // connect to the server
             urlConnection.connect();
@@ -610,8 +640,12 @@ public class SkyHttp implements SkyHttpInterface {
             if(urlConnection.getDoOutput()) {
                 DataOutputStream dos = new DataOutputStream(urlConnection.getOutputStream());
 
-                if(payload != null)
-                    dos.writeBytes(URLEncoder.encode(payload, "UTF-8"));
+                if(payload != null) {
+                    if(urlEncodeCharset == null)
+                        dos.writeBytes(payload);
+                    else
+                        dos.writeBytes(URLEncoder.encode(payload, urlEncodeCharset));
+                }
 
                 if(multiformEntity != null) {
                     multiformEntity.writeTo(dos);
@@ -628,11 +662,18 @@ public class SkyHttp implements SkyHttpInterface {
             String response = "";
 
             // store as string if the response is not binary file
-            if (contentType != null && contentType.matches("text/.*")) {
+            if (contentType != null && isResponseStringParsable(contentType)) {
                 InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
                 String line;
-                try {
+                StringBuilder stringBuilder = new StringBuilder();
+                while ((line = reader.readLine()) != null) {
+                    stringBuilder.append(line);
+                }
+
+                stream.close();
+                response = stringBuilder.toString();
+                /*try {
                     StringBuilder stringBuilder = new StringBuilder();
                     while ((line = reader.readLine()) != null) {
                         stringBuilder.append(line);
@@ -643,7 +684,7 @@ public class SkyHttp implements SkyHttpInterface {
                 } catch (IOException e) {
                     Log.e(TAG, "Response getResponse() Exception: " + e.getMessage());
                     e.printStackTrace();
-                }
+                }*/
             }
 
             // onPrepare the response
@@ -683,6 +724,15 @@ public class SkyHttp implements SkyHttpInterface {
 
             return responseObject;
         }*/
+
+        private boolean isResponseStringParsable(String contentType) {
+            return !contentType.matches("image/.*")
+                    && !contentType.matches("audio/.*")
+                    && !contentType.matches("application/octet-stream")
+                    && !contentType.matches("application/pdf")
+                    && !contentType.matches("application/ogg")
+                    && !contentType.matches("application/zip");
+        }
 
         private Response validateResponse(Response response) {
             if(response == null) {

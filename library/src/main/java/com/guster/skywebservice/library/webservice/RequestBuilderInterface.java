@@ -14,7 +14,7 @@ import javax.net.ssl.SSLSocketFactory;
 /**
  * Created by Gusterwoei on 10/19/15.
  */
-public interface RequestBuilderInterface {
+interface RequestBuilderInterface {
     int getConnectionTimeout();
     SkyHttp.RequestBuilder setConnectionTimeout(int connectionTimeout);
     int getSocketTimeout();
@@ -36,6 +36,8 @@ public interface RequestBuilderInterface {
     SkyHttp.RequestBuilder put(String url, String payload);
     SkyHttp.RequestBuilder delete(String url);
     SkyHttp.RequestBuilder head(String url);
+    SkyHttp.RequestBuilder encode();
+    SkyHttp.RequestBuilder encode(String charset);
     void send();
     void send(SkyHttp.Callback callback);
 }
