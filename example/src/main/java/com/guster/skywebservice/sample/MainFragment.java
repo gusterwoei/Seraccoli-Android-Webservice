@@ -159,9 +159,6 @@ public class MainFragment extends Fragment implements View.OnClickListener {
             Log.d("ABC",(response != null)? response.getResponse() : "no response");
             showProgressbar(false);
 
-            Log.d("ABC", "HEAD MAN: " + response.getHeader("Content-Type"));
-            Log.d("ABC", "HEAD MAN: " + response.getHeader("Content-Length"));
-
             // no response, either request timeout due to server no respond or loss of internet connection
             if(response == null) {
                 txtContent.setVisibility(View.GONE);

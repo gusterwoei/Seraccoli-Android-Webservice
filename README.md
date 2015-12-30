@@ -92,6 +92,18 @@ SkyHttp.newRequest().post(url, formContent).send(/* callback */);
 SkyHttp.newRequest().head("http://www.myawesomeapi.com/deleteUser?userId=6").send();
 ```
 
+## URL Encoding
+
+Default encoding charset is UTF-8
+```java
+SkyHttp.newRequest().encode().post(url, payload);
+```
+
+Or you can specify any encoding charset
+```java
+SkyHttp.newRequest().encode("UTF-16").post(url, payload);
+```
+
 
 ## Handle Response
 
