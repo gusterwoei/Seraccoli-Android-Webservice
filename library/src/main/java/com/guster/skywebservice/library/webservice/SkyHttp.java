@@ -442,8 +442,10 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setRequestMethod("POST");
                 urlConnection.setDoInput(true);
                 urlConnection.setDoOutput(true);
-                urlConnection.setRequestProperty("Connection", "Keep-Alive");
-                urlConnection.setRequestProperty("Content-type", contentType);
+                //urlConnection.setRequestProperty("Connection", "Keep-Alive");
+                //urlConnection.setRequestProperty("Content-type", contentType);
+                addHeader("Connection", "Keep-Alive");
+                addHeader("Content-type", contentType);
                 urlConnection.addRequestProperty(entity.getContentType().getName(), entity.getContentType().getValue());
 
                 setRequest(urlConnection, null, entity);
