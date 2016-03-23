@@ -31,6 +31,7 @@ interface RequestBuilderInterface {
     SkyHttp.RequestBuilder setSSLCertificate(InputStream certificateFile) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException;
 
     SkyHttp.RequestBuilder get(String url);
+    SkyHttp.RequestBuilder get(String url, Params params);
     SkyHttp.RequestBuilder post(String url, String payload);
     SkyHttp.RequestBuilder post(String url, FormContent formContent);
     SkyHttp.RequestBuilder put(String url, String payload);

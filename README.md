@@ -23,7 +23,7 @@ dependencies {
 <dependency>
     <groupId>com.guster.android</groupId>
     <artifactId>skywebservice</artifactId>
-    <version>2.1.3</version>
+    <version>2.2.2</version>
 </dependency>
 ```
 

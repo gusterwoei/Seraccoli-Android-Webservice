@@ -20,6 +20,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.webkit.URLUtil;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.entity.mime.HttpMultipartMode;
@@ -36,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -328,8 +331,16 @@ public class SkyHttp implements SkyHttpInterface {
             /*HttpGet get = new HttpGet(link);
             setRequest(get);*/
 
+            return get(link, null);
+        }
+
+        @Override
+        public RequestBuilder get(String link, Params params) {
+
             try {
-                URL url = new URL(link);
+                String paramStr = buildParams(params);
+
+                URL url = new URL(link + paramStr);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.setDoInput(true);
@@ -341,7 +352,6 @@ public class SkyHttp implements SkyHttpInterface {
 
             return this;
         }
-
 
         /**
          * HTTP POST
@@ -726,6 +736,16 @@ public class SkyHttp implements SkyHttpInterface {
 
             return responseObject;
         }*/
+
+        private String buildParams(Params params) throws UnsupportedEncodingException {
+            String str = "";
+            if(params != null && !params.getParams().isEmpty()) {
+                str += "?";
+                str += params.getEncodedParams(urlEncodeCharset);
+            }
+
+            return str;
+        }
 
         private boolean isResponseStringParsable(String contentType) {
             return !contentType.matches("image/.*")
