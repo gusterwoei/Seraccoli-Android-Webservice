@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.guster.skywebservice.library.webservice.FormContent;
+import com.guster.skywebservice.library.webservice.Params;
 import com.guster.skywebservice.library.webservice.Response;
 import com.guster.skywebservice.library.webservice.SkyHttp;
 
