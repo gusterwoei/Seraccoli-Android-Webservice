@@ -81,6 +81,10 @@ public class MainFragment extends Fragment implements View.OnClickListener {
 
         loadUrls();
 
+        Params params = new Params();
+        params.add("lsd", "2015-01-01 00:00:00");
+        SkyHttp.newRequest().get("http://www.google.com", params).send();
+
         return rootView;
     }
 
