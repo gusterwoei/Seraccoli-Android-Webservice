@@ -22,6 +22,8 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.webkit.URLUtil;
 
+import com.guster.skywebservice.library.webservice.util.SkyHttpException;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.entity.mime.HttpMultipartMode;
@@ -169,7 +171,7 @@ public class SkyHttp implements SkyHttpInterface {
      *****************************************************************************/
     public static final class RequestBuilder implements RequestBuilderInterface {
 
-        private static final String TAG = "SkyWebService";
+        private static final String TAG = "SKYHTTP";
 
         // HTTP socket parameters
         private int connectionTimeout = CONNECTION_TIMEOUT;
@@ -346,8 +348,7 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setDoInput(true);
                 setRequest(urlConnection, null, null);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("GET", e);
             }
 
             return this;
@@ -380,8 +381,7 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setDoOutput(true);
                 setRequest(urlConnection, payload, null);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("POST", e);
             }
 
             return this;
@@ -461,8 +461,7 @@ public class SkyHttp implements SkyHttpInterface {
                 setRequest(urlConnection, null, entity);
 
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("UPLOAD", e);
             }
 
             return this;
@@ -487,8 +486,7 @@ public class SkyHttp implements SkyHttpInterface {
                 setRequest(urlConnection, payload, null);
                 return this;
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("PUT", e);
             }
 
             return this;
@@ -510,8 +508,7 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setDoInput(true);
                 setRequest(urlConnection, null, null);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("DELETE", e);
             }
 
             return this;
@@ -533,11 +530,18 @@ public class SkyHttp implements SkyHttpInterface {
                 urlConnection.setDoInput(true);
                 setRequest(urlConnection, null, null);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e(TAG, "WebService: " + e.getMessage());
+                handleRequestSetupException("HEAD", e);
             }
 
             return this;
+        }
+
+        private void handleRequestSetupException(String tag, Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, tag + ": " + e.getMessage());
+
+            String error = e.getMessage() + ". Is your target url in valid format? Eg. http:// or https://";
+            throw new SkyHttpException(error);
         }
 
         @Override
