@@ -587,6 +587,8 @@ public class SkyHttp implements SkyHttpInterface {
 
             // send the request to server
             new AsyncTask<Void, Void, Response>() {
+                private Object[] args;
+
                 @Override
                 protected void onPreExecute() {
                     if(callback != null)
@@ -599,7 +601,7 @@ public class SkyHttp implements SkyHttpInterface {
                     try {
                         response = send(urlConnection);
                         if(callback != null)
-                            callback.onReceiveInBackground(response, (response != null && response.success()));
+                            args = callback.onReceiveInBackground(response, (response != null && response.success()));
                     } catch (IOException e) {
                         e.printStackTrace();
                         Log.e(TAG, "do in background: " + e.getMessage());
@@ -628,7 +630,7 @@ public class SkyHttp implements SkyHttpInterface {
                 @Override
                 protected void onPostExecute(Response response) {
                     if(callback != null)
-                        callback.onResponse(response, (response != null && response.success()));
+                        callback.onResponse(response, (response != null && response.success()), args);
                 }
             }.executeOnExecutor(asyncTaskExecutor);
 
