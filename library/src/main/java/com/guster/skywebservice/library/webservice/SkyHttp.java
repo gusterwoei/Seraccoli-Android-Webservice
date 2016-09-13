@@ -600,11 +600,14 @@ public class SkyHttp implements SkyHttpInterface {
                     Response response = null;
                     try {
                         response = send(urlConnection);
+
+                        // callback
                         if(callback != null)
                             args = callback.onReceiveInBackground(response, (response != null && response.success()));
+
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e(TAG, "do in background: " + e.getMessage());
+                        Log.e(TAG, "do in background: ", e);
 
                         // validate if the response is due to timeout
                         response = validateResponse(response);
@@ -623,6 +626,10 @@ public class SkyHttp implements SkyHttpInterface {
                         }
 
                         response.setResponse(sb.toString());
+
+                        // callback
+                        if(callback != null)
+                            args = callback.onReceiveInBackground(response, false);
                     }
                     return response;
                 }
